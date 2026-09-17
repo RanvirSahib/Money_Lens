@@ -1,9 +1,13 @@
 # =========================
-# Environment
+# Environment & Secrets
 # =========================
 .env
 .env.*
 !.env.example
+.aws/
+*.pem
+*.key
+credentials
 
 # =========================
 # Node / Next.js
@@ -18,47 +22,66 @@ dist/
 # =========================
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environments
 .venv/
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+cover/
 .mypy_cache/
 
 # =========================
-# IDE
+# IDE & OS Files
 # =========================
 .vscode/
 .idea/
-
-# =========================
-# OS
-# =========================
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
 
 # =========================
-# Logs
-# =========================
-*.log
-
-# =========================
-# Local databases
+# Databases & Logs
 # =========================
 *.db
 *.sqlite
 *.sqlite3
-
-# =========================
-# AWS / Secrets
-# =========================
-.aws/
-*.pem
-*.key
-credentials
-
-# =========================
-# Temporary files
-# =========================
+*.log
 *.tmp
 *.temp
