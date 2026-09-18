@@ -5,9 +5,12 @@ applications:
       phases:
         preBuild:
           commands:
+            - nvm use 20 || nvm install 20
+            - node -v
             - npm install --legacy-peer-deps
         build:
           commands:
+            - env
             - npm run build
       artifacts:
         baseDirectory: out
