@@ -8,6 +8,8 @@ interface ReverseTimeMachineProps {
   onLeversChange?: (levers: AdjustmentLever[]) => void;
   targetAmount?: number;
   currentAmount?: number;
+  monthlyIncome?: number;
+  monthlyExpenses?: number;
   deadline?: string;
 }
 
@@ -15,12 +17,16 @@ export const ReverseTimeMachine: React.FC<ReverseTimeMachineProps> = ({
   onLeversChange,
   targetAmount = 100000,
   currentAmount = 40000,
+  monthlyIncome = 55000,
+  monthlyExpenses = 25000,
   deadline = 'MARCH 2027',
 }) => {
   const [levers, setLevers] = useState<AdjustmentLever[]>(INITIAL_LEVERS);
 
+  const monthlySurplus = Math.max(1, monthlyIncome - monthlyExpenses);
+
   // Remaining gap
-  const gap = targetAmount - currentAmount;
+  const gap = Math.max(0, targetAmount - currentAmount);
   // 16 months to March 2027
   const baseMonths = 16;
   const baseMonthly = Math.round(gap / baseMonths);
@@ -39,6 +45,8 @@ export const ReverseTimeMachine: React.FC<ReverseTimeMachineProps> = ({
     0,
     Math.round(adjustedGap / baseMonths) - appliedMonthlyReduction
   );
+
+  const surplusRatio = Math.round((calculatedMonthly / monthlySurplus) * 100);
 
   const toggleLever = (id: string) => {
     const updated = levers.map((l) =>

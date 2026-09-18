@@ -7,10 +7,16 @@ import { TrajectoryNode } from '../types';
 
 interface SimulatorScreenProps {
   trajectoryNodes: TrajectoryNode[];
+  savings?: number;
+  income?: number;
+  expenses?: number;
 }
 
 export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
   trajectoryNodes,
+  savings = 40000,
+  income = 55000,
+  expenses = 25000,
 }) => {
   const [purchaseAmount, setPurchaseAmount] = useState(80000);
   const [interestRate, setInterestRate] = useState(14);
@@ -90,7 +96,11 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
       </div>
 
       {/* Main Interactive Subsystem */}
-      <FinancialTimeMachine />
+      <FinancialTimeMachine
+        currentSavings={savings}
+        monthlyIncome={income}
+        monthlyExpenses={expenses}
+      />
 
       {/* Parameter Adjustment Deck */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

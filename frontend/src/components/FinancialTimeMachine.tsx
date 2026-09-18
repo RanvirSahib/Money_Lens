@@ -5,10 +5,18 @@ import { SimulationResult } from '../types';
 
 interface FinancialTimeMachineProps {
   onSimulationChange?: (result: SimulationResult) => void;
+  currentSavings?: number;
+  monthlyIncome?: number;
+  monthlyExpenses?: number;
+  existingEmi?: number;
 }
 
 export const FinancialTimeMachine: React.FC<FinancialTimeMachineProps> = ({
   onSimulationChange,
+  currentSavings = 40000,
+  monthlyIncome = 55000,
+  monthlyExpenses = 25000,
+  existingEmi = 0,
 }) => {
   const [query, setQuery] = useState('I want to buy an ₹80,000 phone');
   const [decision, setDecision] = useState<
@@ -23,12 +31,18 @@ export const FinancialTimeMachine: React.FC<FinancialTimeMachineProps> = ({
   };
 
   const currentCost = parseAmount(query);
+  const monthlySurplus = Math.max(0, monthlyIncome - monthlyExpenses - existingEmi);
+  const baselineSavings = currentSavings + 12 * monthlySurplus;
 
-  // Compute telemetry metrics dynamically based on decision & cost
+  // Compute telemetry metrics dynamically based on decision, cost, & user financial profile
   const computeSimulation = (): SimulationResult => {
     const cost = currentCost;
     if (decision === 'buy_now') {
-      const projectedSavings = Math.max(0, 64000 - cost);
+      const immediateSavings = Math.max(0, currentSavings - cost);
+      const projectedSavings = immediateSavings + 12 * monthlySurplus;
+      const recoveryMonths = monthlySurplus > 0 ? Math.ceil(cost / monthlySurplus) : 12;
+      const stressIndex = Math.min(96, Math.max(25, Math.round((cost / Math.max(1, currentSavings + monthlySurplus)) * 75)));
+
       return {
         query,
         decision,
@@ -36,86 +50,100 @@ export const FinancialTimeMachine: React.FC<FinancialTimeMachineProps> = ({
         emiMonthly: 0,
         tenureMonths: 1,
         projectedSavings,
-        baselineSavings: 64000,
+        baselineSavings,
         monthlyCashFlowDelta: -cost,
-        goalLagMonths: 4,
-        potentialPressure: cost > 50000 ? 'ELEVATED' : 'MODERATE',
-        stressIndex: Math.min(95, Math.round((cost / 55000) * 55)),
-        notes: `Immediate liquidity extraction of ₹${cost.toLocaleString('en-IN')}. Emergency buffer contracts severely in M+1.`,
+        goalLagMonths: Math.max(1, recoveryMonths),
+        potentialPressure: stressIndex > 65 ? 'HIGH' : stressIndex > 40 ? 'ELEVATED' : 'MODERATE',
+        stressIndex,
+        notes: `Immediate liquidity extraction of ₹${cost.toLocaleString('en-IN')}. Emergency buffer recovers in ${recoveryMonths} month${recoveryMonths > 1 ? 's' : ''} at ₹${monthlySurplus.toLocaleString('en-IN')}/mo surplus.`,
         simHash: '849F-BN01',
       };
     }
 
     if (decision === 'save_first') {
-      const monthsNeeded = Math.ceil(cost / 10000);
+      const monthsNeeded = monthlySurplus > 0 ? Math.ceil(cost / monthlySurplus) : 12;
+      const projectedSavings = Math.max(0, baselineSavings - cost);
+
       return {
         query,
         decision,
         cost,
         emiMonthly: 0,
         tenureMonths: monthsNeeded,
-        projectedSavings: 64000,
-        baselineSavings: 64000,
+        projectedSavings,
+        baselineSavings,
         monthlyCashFlowDelta: 0,
         goalLagMonths: 0,
         potentialPressure: 'LOW',
         stressIndex: 12,
-        notes: `Zero leverage shock. Purchase deferred until Month +${monthsNeeded} via planned incremental surplus allocation.`,
+        notes: `Zero leverage shock. Purchase deferred until Month +${monthsNeeded} via planned monthly surplus allocation of ₹${monthlySurplus.toLocaleString('en-IN')}.`,
         simHash: '849F-SF03',
       };
     }
 
     if (decision === 'wait_3m') {
+      const emiMonthly = Math.round(cost / 12);
+      const projectedSavings = currentSavings + 3 * monthlySurplus + 9 * Math.max(0, monthlySurplus - emiMonthly);
+      const stressIndex = Math.min(70, Math.max(18, Math.round((emiMonthly / Math.max(1, monthlySurplus)) * 45)));
+
       return {
         query,
         decision,
         cost,
-        emiMonthly: Math.round(cost / 12),
+        emiMonthly,
         tenureMonths: 12,
-        projectedSavings: 42000,
-        baselineSavings: 64000,
-        monthlyCashFlowDelta: -Math.round(cost / 12),
+        projectedSavings,
+        baselineSavings,
+        monthlyCashFlowDelta: -emiMonthly,
         goalLagMonths: 1,
-        potentialPressure: 'LOW',
-        stressIndex: 22,
-        notes: `Delaying 90 days allows Q4 bonus absorption. Strain vector reduced by 42% vs immediate purchase.`,
+        potentialPressure: stressIndex > 45 ? 'MODERATE' : 'LOW',
+        stressIndex,
+        notes: `Delaying 90 days allows building ₹${(3 * monthlySurplus).toLocaleString('en-IN')} buffer. Strain vector reduced vs immediate purchase.`,
         simHash: '849F-W3M2',
       };
     }
 
     if (decision === 'custom') {
+      const emiMonthly = Math.round(cost / 18);
+      const projectedSavings = currentSavings + 12 * Math.max(0, monthlySurplus - emiMonthly);
+      const stressIndex = Math.min(80, Math.max(20, Math.round((emiMonthly / Math.max(1, monthlySurplus)) * 50)));
+
       return {
         query,
         decision,
         cost,
-        emiMonthly: 4500,
+        emiMonthly,
         tenureMonths: 18,
-        projectedSavings: 38000,
-        baselineSavings: 64000,
-        monthlyCashFlowDelta: -4500,
-        goalLagMonths: 1.5,
-        potentialPressure: 'MODERATE',
-        stressIndex: 31,
-        notes: `Customized amortization structure. 18-month tenure balances cash burn against interest premium.`,
+        projectedSavings,
+        baselineSavings,
+        monthlyCashFlowDelta: -emiMonthly,
+        goalLagMonths: Math.max(1, Math.round((cost / Math.max(1, monthlySurplus)) * 0.4)),
+        potentialPressure: stressIndex > 50 ? 'ELEVATED' : 'MODERATE',
+        stressIndex,
+        notes: `Customized 18-month amortization structure balances cash burn (₹${emiMonthly.toLocaleString('en-IN')}/mo) against reserve security.`,
         simHash: '849F-CST9',
       };
     }
 
-    // Default: EMI Active (₹6,667/mo)
+    // Default: EMI Active (12-month tenure)
     const emi = Math.round(cost / 12);
+    const postEmiSurplus = Math.max(0, monthlySurplus - emi);
+    const projectedSavings = currentSavings + 12 * postEmiSurplus;
+    const stressIndex = Math.min(92, Math.max(28, Math.round((emi / Math.max(1, monthlySurplus)) * 70)));
+
     return {
       query,
       decision: 'emi_active',
       cost,
       emiMonthly: emi,
       tenureMonths: 12,
-      projectedSavings: 32400,
-      baselineSavings: 64000,
+      projectedSavings,
+      baselineSavings,
       monthlyCashFlowDelta: -emi,
-      goalLagMonths: 2,
-      potentialPressure: 'MODERATE',
-      stressIndex: 38,
-      notes: `Divergence occurs in Month 2. Emergency buffer remains safely above 1.2x threshold under the 12-month tenure model.`,
+      goalLagMonths: monthlySurplus > 0 ? Math.max(1, Math.round((cost / monthlySurplus) * 0.6)) : 3,
+      potentialPressure: stressIndex > 60 ? 'ELEVATED' : stressIndex > 35 ? 'MODERATE' : 'LOW',
+      stressIndex,
+      notes: `Divergence occurs in Month 2. Emergency buffer remains monitored under the 12-month tenure model (₹${emi.toLocaleString('en-IN')}/mo EMI).`,
       simHash: '849F-2027',
     };
   };
@@ -292,7 +320,7 @@ export const FinancialTimeMachine: React.FC<FinancialTimeMachineProps> = ({
             ₹{simResult.projectedSavings.toLocaleString('en-IN')}
           </div>
           <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-200">
-            Baseline: ₹64,000 (Δ -₹{(64000 - simResult.projectedSavings).toLocaleString('en-IN')})
+            Baseline: ₹{simResult.baselineSavings.toLocaleString('en-IN')} (Δ {simResult.baselineSavings >= simResult.projectedSavings ? '-' : '+'}₹{Math.abs(simResult.baselineSavings - simResult.projectedSavings).toLocaleString('en-IN')})
           </div>
         </div>
 

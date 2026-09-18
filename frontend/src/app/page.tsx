@@ -1,5 +1,6 @@
 import { MoneyLensApp } from '@/components/MoneyLensApp';
 
 export default function Home() {
-  return <MoneyLensApp initialScreen="dashboard" />;
+  return <MoneyLensApp initialScreen="landing" />;
 }
+

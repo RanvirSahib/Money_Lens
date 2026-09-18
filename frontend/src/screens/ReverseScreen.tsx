@@ -6,9 +6,15 @@ import { AdjustmentLever } from '../types';
 
 interface ReverseScreenProps {
   savings: number;
+  income?: number;
+  expenses?: number;
 }
 
-export const ReverseScreen: React.FC<ReverseScreenProps> = ({ savings }) => {
+export const ReverseScreen: React.FC<ReverseScreenProps> = ({
+  savings,
+  income = 55000,
+  expenses = 25000,
+}) => {
   const [targetAmt, setTargetAmt] = useState(100000);
   const [targetDate, setTargetDate] = useState('MARCH 2027');
 
@@ -88,6 +94,8 @@ export const ReverseScreen: React.FC<ReverseScreenProps> = ({ savings }) => {
           <ReverseTimeMachine
             targetAmount={targetAmt}
             currentAmount={savings}
+            monthlyIncome={income}
+            monthlyExpenses={expenses}
             deadline={targetDate}
           />
         </div>

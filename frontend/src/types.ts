@@ -1,4 +1,16 @@
-export type ScreenId = 'dashboard' | 'simulator' | 'goals' | 'reverse' | 'radar' | 'lab';
+export type ScreenId = 'landing' | 'login' | 'dashboard' | 'simulator' | 'goals' | 'reverse' | 'radar' | 'lab';
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  role: string;
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  currentSavings: number;
+  healthScore: number;
+}
 
 export interface TrajectoryNode {
   label: string;

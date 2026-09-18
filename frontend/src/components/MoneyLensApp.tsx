@@ -1,10 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ScreenId, TrajectoryNode, SimulationResult, CashFlowItem } from '../types';
 import { INITIAL_TRAJECTORY_NODES } from '../data/mockData';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { LandingScreen } from '../screens/LandingScreen';
+import { LoginScreen } from '../screens/LoginScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { SimulatorScreen } from '../screens/SimulatorScreen';
 import { GoalsScreen } from '../screens/GoalsScreen';
@@ -19,7 +23,8 @@ interface MoneyLensAppProps {
   initialScreen?: ScreenId;
 }
 
-export function MoneyLensApp({ initialScreen = 'dashboard' }: MoneyLensAppProps) {
+function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
+  const { user, updateUserParams } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<ScreenId>(initialScreen);
   const [savings, setSavings] = useState(40000);
   const [income, setIncome] = useState(55000);
@@ -33,6 +38,22 @@ export function MoneyLensApp({ initialScreen = 'dashboard' }: MoneyLensAppProps)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [infoModalType, setInfoModalType] = useState<'terms' | 'audit' | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Sync user profile changes to baseline calculations
+  useEffect(() => {
+    if (user) {
+      setSavings(user.currentSavings);
+      setIncome(user.monthlyIncome);
+      setExpenses(user.monthlyExpenses);
+      setHealthScore(user.healthScore);
+      
+      const updated = INITIAL_TRAJECTORY_NODES.map((n) => ({
+        ...n,
+        baseline: user.currentSavings + n.monthIndex * (user.monthlyIncome - user.monthlyExpenses),
+      }));
+      setTrajectoryNodes(updated);
+    }
+  }, [user]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -53,6 +74,7 @@ export function MoneyLensApp({ initialScreen = 'dashboard' }: MoneyLensAppProps)
   const handleConfirmIncome = (amt: number) => {
     setIncome(amt);
     setHealthScore(88);
+    updateUserParams(amt, expenses, savings);
     showToast(`Income updated to ₹${amt.toLocaleString('en-IN')}. Engine recalibrated.`);
   };
 
@@ -65,6 +87,7 @@ export function MoneyLensApp({ initialScreen = 'dashboard' }: MoneyLensAppProps)
     setIncome(newInc);
     setExpenses(newExp);
     setSavings(newSav);
+    updateUserParams(newInc, newExp, newSav);
 
     // Recalibrate trajectory nodes
     const updated = trajectoryNodes.map((n) => ({
@@ -104,43 +127,81 @@ export function MoneyLensApp({ initialScreen = 'dashboard' }: MoneyLensAppProps)
         healthScore={healthScore}
       />
 
-      {/* Main Canvas Container */}
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 py-8">
-        {currentScreen === 'dashboard' && (
-          <DashboardScreen
-            trajectoryNodes={trajectoryNodes}
-            onNavigate={handleNavigate}
-            onSimulationChange={handleSimulationChange}
-            savings={savings}
-            income={income}
-            expenses={expenses}
-            onConfirmIncome={handleConfirmIncome}
-            onKeepIncome={handleKeepIncome}
-            onRadarItemClick={handleRadarItemClick}
-          />
-        )}
+      {/* Main Container with Smooth Animated Transition */}
+      <main className={`flex-1 w-full ${currentScreen === 'landing' ? 'p-0 max-w-full' : 'max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 py-8'}`}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentScreen}
+            initial={{ opacity: 0, y: 10, scale: 0.995 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.995 }}
+            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full"
+          >
+            {currentScreen === 'landing' && (
+              <LandingScreen onNavigate={handleNavigate} />
+            )}
 
-        {currentScreen === 'simulator' && (
-          <SimulatorScreen trajectoryNodes={trajectoryNodes} />
-        )}
+            {currentScreen === 'login' && (
+              <LoginScreen onNavigate={handleNavigate} />
+            )}
 
-        {currentScreen === 'goals' && <GoalsScreen />}
+            {currentScreen === 'dashboard' && (
+              <DashboardScreen
+                trajectoryNodes={trajectoryNodes}
+                onNavigate={handleNavigate}
+                onSimulationChange={handleSimulationChange}
+                savings={savings}
+                income={income}
+                expenses={expenses}
+                onConfirmIncome={handleConfirmIncome}
+                onKeepIncome={handleKeepIncome}
+                onRadarItemClick={handleRadarItemClick}
+              />
+            )}
 
-        {currentScreen === 'reverse' && <ReverseScreen savings={savings} />}
+            {currentScreen === 'simulator' && (
+              <SimulatorScreen
+                trajectoryNodes={trajectoryNodes}
+                savings={savings}
+                income={income}
+                expenses={expenses}
+              />
+            )}
 
-        {currentScreen === 'radar' && <RadarScreen />}
+            {currentScreen === 'goals' && <GoalsScreen />}
 
-        {currentScreen === 'lab' && <LabScreen />}
+            {currentScreen === 'reverse' && (
+              <ReverseScreen
+                savings={savings}
+                income={income}
+                expenses={expenses}
+              />
+            )}
+
+            {currentScreen === 'radar' && (
+              <RadarScreen
+                savings={savings}
+                income={income}
+                expenses={expenses}
+              />
+            )}
+
+            {currentScreen === 'lab' && <LabScreen />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      {/* Footer */}
-      <Footer
-        onOpenLogs={() => setIsLogsOpen(true)}
-        onOpenTerms={() => setInfoModalType('terms')}
-        onOpenAudit={() => setInfoModalType('audit')}
-      />
+      {/* Footer for App Screens */}
+      {currentScreen !== 'landing' && (
+        <Footer
+          onOpenLogs={() => setIsLogsOpen(true)}
+          onOpenTerms={() => setInfoModalType('terms')}
+          onOpenAudit={() => setInfoModalType('audit')}
+        />
+      )}
 
-      {/* Modal Dialogs */}
+      {/* Mission Control System Modals */}
       <SysLogsModal
         isOpen={isLogsOpen}
         onClose={() => setIsLogsOpen(false)}
@@ -163,4 +224,10 @@ export function MoneyLensApp({ initialScreen = 'dashboard' }: MoneyLensAppProps)
   );
 }
 
-export default MoneyLensApp;
+export function MoneyLensApp(props: MoneyLensAppProps) {
+  return (
+    <AuthProvider>
+      <MoneyLensAppInner {...props} />
+    </AuthProvider>
+  );
+}

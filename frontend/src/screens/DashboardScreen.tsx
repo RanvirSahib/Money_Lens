@@ -57,16 +57,28 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       />
 
       {/* 3. FINANCIAL TIME MACHINE (SIMULATOR) */}
-      <FinancialTimeMachine onSimulationChange={onSimulationChange} />
+      <FinancialTimeMachine
+        onSimulationChange={onSimulationChange}
+        currentSavings={savings}
+        monthlyIncome={income}
+        monthlyExpenses={expenses}
+      />
 
       {/* 4. TWO-COLUMN STRATEGIC SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <ReverseTimeMachine
           targetAmount={100000}
           currentAmount={savings}
+          monthlyIncome={income}
+          monthlyExpenses={expenses}
           deadline="MARCH 2027"
         />
-        <FinancialRadar onItemClick={onRadarItemClick} />
+        <FinancialRadar
+          onItemClick={onRadarItemClick}
+          currentSavings={savings}
+          monthlyIncome={income}
+          monthlyExpenses={expenses}
+        />
       </div>
 
       {/* 5. BOTTOM TELEMETRY PANELS */}
