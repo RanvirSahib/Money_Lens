@@ -1,0 +1,48 @@
+﻿version: '3.8'
+
+services:
+  # 1. MoneyLens Deterministic Backend Engine (:8000)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: moneylens-backend
+    restart: always
+    ports:
+      - 8000:8000
+    environment:
+      - DB_HOST=money-lens-db.cytc02yew2rk.us-east-1.rds.amazonaws.com
+      - DB_PORT=5432
+      - DB_NAME=moneylens
+      - DB_USER=moneylens
+      - DB_PASSWORD=moneylens0277
+      - DB_SSLMODE=require
+      - AI_SERVICE_URL=http://ai:8001
+    depends_on:
+      - ai
+
+  # 2. MoneyLens Groq AI Microservice (:8001)
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: moneylens-ai
+    restart: always
+    ports:
+      - 8001:8001
+    environment:
+      - GROQ_MODEL=openai/gpt-oss-120b
+
+  # 3. MoneyLens Web Frontend (:3000)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: moneylens-frontend
+    restart: always
+    ports:
+      - 3000:3000
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
