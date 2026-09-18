@@ -10,6 +10,7 @@ import { FinancialRadar } from '../components/FinancialRadar';
 import { EvidenceIntelligence } from '../components/EvidenceIntelligence';
 import { IncomeNotification } from '../components/IncomeNotification';
 import { HealthVitals } from '../components/HealthVitals';
+import { useAIInsights } from '../hooks/use-ai-insights';
 
 interface DashboardScreenProps {
   trajectoryNodes: TrajectoryNode[];
@@ -34,6 +35,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onKeepIncome,
   onRadarItemClick,
 }) => {
+  const { insights, loading, refresh } = useAIInsights({
+    analysis_type: 'time_machine',
+    financial_position: {
+      monthly_income: income,
+      monthly_expenses: expenses,
+      current_savings: savings,
+      monthly_surplus: income - expenses,
+      emergency_fund_months: expenses > 0 ? Number((savings / expenses).toFixed(1)) : 3.5,
+    },
+  });
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* 1. HERO & COMMAND CENTER TELEMETRY */}
@@ -81,9 +93,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         />
       </div>
 
-      {/* 5. BOTTOM TELEMETRY PANELS */}
+      {/* 5. EVIDENCE-BASED AI INTELLIGENCE */}
       <div className="space-y-8">
         <EvidenceIntelligence
+          insights={insights}
+          loading={loading}
+          onRefresh={refresh}
           onEngageCeiling={() => {
             console.log('Discretionary ceiling engaged');
           }}

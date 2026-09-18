@@ -26,6 +26,9 @@ class Settings(BaseModel):
     HEALTHY_SAVINGS_RATE_PCT: float = 20.0          # Recommended >= 20%
     HIGH_DEBT_TO_INCOME_PCT: float = 40.0           # Total EMI > 40% monthly income
     
+    # AI Service Configuration (Groq-powered MoneyLens AI microservice)
+    AI_SERVICE_URL: str = Field(default_factory=lambda: os.getenv("AI_SERVICE_URL", "http://localhost:8001"))
+
     # AWS & Amazon Bedrock Configuration
     AWS_REGION: str = Field(default_factory=lambda: os.getenv("AWS_REGION", "us-east-1"))
     BEDROCK_MODEL_ID: str = Field(default_factory=lambda: os.getenv("BEDROCK_MODEL_ID", "amazon.nova-micro-v1:0"))

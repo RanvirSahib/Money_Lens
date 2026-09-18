@@ -5,10 +5,16 @@ Does not perform financial calculations.
 """
 
 from fastapi import APIRouter, HTTPException, status
-from app.schemas.ai import AIAnalyzeRequest, AIAnalyzeResponse
+from app.schemas.ai import (
+    AIAnalyzeRequest,
+    AIAnalyzeResponse,
+    AIInsightRequest,
+    AIInsightResponse
+)
 from app.services.bedrock_service import bedrock_service, BedrockServiceError
+from app.services.ai_gateway_service import ai_gateway_service
 
-router = APIRouter(prefix="/ai", tags=["AI Interpretation"])
+router = APIRouter(prefix="/ai", tags=["AI Interpretation & Insights"])
 
 
 @router.post(
@@ -33,3 +39,25 @@ def analyze_financial_query(payload: AIAnalyzeRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred during AI analysis: {str(e)}"
         )
+
+
+@router.post(
+    "/insights",
+    response_model=AIInsightResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Generate plain-English narrative observations, trade-offs, and evidence from structured financial results"
+)
+async def generate_financial_insights(payload: AIInsightRequest):
+    """
+    Connects to the MoneyLens Groq AI microservice (:8001) to synthesize high-level narrative insights,
+    observations, trade-offs, and risk factors from pre-calculated financial data.
+    Provides graceful fallback synthesis if the AI microservice is not yet running.
+    """
+    try:
+        return await ai_gateway_service.get_insights(payload)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating financial insights: {str(e)}"
+        )
+
