@@ -78,11 +78,47 @@ class InMemoryGoalRepository:
         return False
 
 
+from app.core.config import settings
+from app.repositories.postgres_goal_repo import PostgresGoalRepository
+
+
+class GoalRepositoryProxy:
+    """
+    Repository interface proxy for GoalRepository.
+    Directs operations to PostgresGoalRepository when database configuration is present.
+    Uses InMemoryGoalRepository when no database configuration is provided (local dev/testing).
+    If database configuration is present but connection fails, PostgresGoalRepository surfaces the error directly.
+    """
+
+    def __init__(self):
+        self._in_memory = InMemoryGoalRepository()
+        self._postgres = PostgresGoalRepository()
+
+    @property
+    def active_repo(self):
+        if settings.is_db_configured():
+            return self._postgres
+        return self._in_memory
+
+    def create(self, data: GoalCreateRequest) -> GoalResponse:
+        return self.active_repo.create(data)
+
+    def get_all(self) -> List[GoalResponse]:
+        return self.active_repo.get_all()
+
+    def get_by_id(self, goal_id: str) -> Optional[GoalResponse]:
+        return self.active_repo.get_by_id(goal_id)
+
+    def delete(self, goal_id: str) -> bool:
+        return self.active_repo.delete(goal_id)
+
+
 class GoalService:
     """Goal evaluation and calculation engine."""
 
-    def __init__(self):
-        self.repository = InMemoryGoalRepository()
+    def __init__(self, repository=None):
+        self.repository = repository if repository is not None else GoalRepositoryProxy()
+
 
     @staticmethod
     def calculate_forward_goal(req: GoalCalculationRequest) -> GoalCalculationResponse:

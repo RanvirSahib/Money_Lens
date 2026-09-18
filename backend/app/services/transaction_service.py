@@ -204,5 +204,49 @@ class InMemoryTransactionRepository:
         )
 
 
+from app.core.config import settings
+from app.repositories.postgres_transaction_repo import PostgresTransactionRepository
+
+
+class TransactionRepositoryProxy:
+    """
+    Repository interface proxy.
+    Directs operations to PostgresTransactionRepository when database configuration is present.
+    Uses InMemoryTransactionRepository when no database configuration is provided (local dev/testing).
+    If database configuration is present but connection fails, PostgresTransactionRepository surfaces the error directly.
+    """
+
+    def __init__(self):
+        self._in_memory = InMemoryTransactionRepository()
+        self._postgres = PostgresTransactionRepository()
+
+    @property
+    def active_repo(self):
+        if settings.is_db_configured():
+            return self._postgres
+        return self._in_memory
+
+    def create(self, data: TransactionCreate) -> TransactionResponse:
+        return self.active_repo.create(data)
+
+    def get_all(
+        self,
+        transaction_type: Optional[TransactionType] = None,
+        category: Optional[str] = None,
+        is_recurring: Optional[bool] = None
+    ) -> List[TransactionResponse]:
+        return self.active_repo.get_all(transaction_type, category, is_recurring)
+
+    def get_by_id(self, txn_id: str) -> Optional[TransactionResponse]:
+        return self.active_repo.get_by_id(txn_id)
+
+    def delete(self, txn_id: str) -> bool:
+        return self.active_repo.delete(txn_id)
+
+    def get_summary(self) -> TransactionSummaryResponse:
+        return self.active_repo.get_summary()
+
+
 # Singleton instance for repository
-transaction_repository = InMemoryTransactionRepository()
+transaction_repository = TransactionRepositoryProxy()
+

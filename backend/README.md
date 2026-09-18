@@ -7,17 +7,20 @@
 
 ## 📑 Table of Contents
 - [Architecture & AI-Ready Pipeline](#architecture--ai-ready-pipeline)
+- [Amazon Bedrock Integration (AI Interpretation Layer)](#amazon-bedrock-integration-ai-interpretation-layer)
+- [Database Integration (PostgreSQL / AWS RDS with psycopg)](#database-integration-postgresql--aws-rds-with-psycopg)
 - [Project Structure](#project-structure)
 - [Installation & Quick Start](#installation--quick-start)
 - [Running Automated Tests](#running-automated-tests)
 - [Core Features & Mathematical Calculations](#core-features--mathematical-calculations)
 - [API Reference & Example Payloads](#api-reference--example-payloads)
   - [1. System Health & Info](#1-system-health--info)
-  - [2. Transaction Processing](#2-transaction-processing)
-  - [3. Financial Simulation Engine](#3-financial-simulation-engine)
-  - [4. Goal Engine (Forward & Reverse)](#4-goal-engine-forward--reverse)
-  - [5. Experiment Lab (Multi-Scenario Comparison)](#5-experiment-lab-multi-scenario-comparison)
-  - [6. Financial Radar (Risk & Anomaly Engine)](#6-financial-radar-risk--anomaly-engine)
+  - [2. AI Interpretation Layer (Amazon Bedrock)](#2-ai-interpretation-layer-amazon-bedrock)
+  - [3. Transaction Processing](#3-transaction-processing)
+  - [4. Financial Simulation Engine](#4-financial-simulation-engine)
+  - [5. Goal Engine (Forward & Reverse)](#5-goal-engine-forward--reverse)
+  - [6. Experiment Lab (Multi-Scenario Comparison)](#6-experiment-lab-multi-scenario-comparison)
+  - [7. Financial Radar (Risk & Anomaly Engine)](#7-financial-radar-risk--anomaly-engine)
 - [Frontend Integration Guide](#frontend-integration-guide)
 - [Financial Safety & Compliance](#financial-safety--compliance)
 
@@ -29,14 +32,25 @@ MoneyLens is architected with a strict separation of concerns:
 
 ```
 ┌────────────────────────────────────────┐
-│             Financial Data             │
-│ (In-memory Repository / Future MySQL)  │
+│     User Natural Language Request      │
+│  ("Can I buy a ₹70,000 phone soon?")   │
+└──────────────────┬─────────────────────┘
+                   │
+                   ▼
+┌────────────────────────────────────────┐
+│    Amazon Bedrock Interpretation       │
+│      (amazon.nova-micro-v1:0)          │
+│    *Converts NL to structured intent*  │
 └──────────────────┬─────────────────────┘
                    │
                    ▼
 ┌────────────────────────────────────────┐
 │     Deterministic Financial Engine     │
 │ (Pure mathematical formulas & models)  │
+│  - Purchase Simulation & Liquidity     │
+│  - Reducing-Balance Loan EMI Math      │
+│  - Compounding Savings Projections     │
+│  - Goal Feasibility & Radar Alerts     │
 └──────────────────┬─────────────────────┘
                    │
                    ▼
@@ -47,16 +61,62 @@ MoneyLens is architected with a strict separation of concerns:
                    │
                    ▼
 ┌────────────────────────────────────────┐
-│     AI Intelligence Layer (LATER)      │
-│   (Amazon Bedrock / Claude / LLM)      │
+│      Pluggable Storage Layer           │
+│  - PostgreSQL / AWS RDS (psycopg v3)   │
+│  - In-Memory Fallback (local testing)  │
 └────────────────────────────────────────┘
 ```
 
-- **Deterministic Mathematics**: All financial numbers, compounding timelines, EMI schedules, and risk alerts are computed with pure mathematical functions (zero non-deterministic or hallucinated math).
-- **AI-Ready Structured JSON**: Responses include scenario identifiers, baseline vs simulated metrics, trade-offs, and assumptions formatted for instant LLM ingestion.
-- **Pluggable Storage**: Uses an in-memory repository pattern that can be swapped for MySQL / PostgreSQL / SQLAlchemy without altering API or service contracts.
+- **Amazon Bedrock Interpretation Layer**: Interprets natural-language financial questions via the Bedrock Converse API (`amazon.nova-micro-v1:0`) and maps them into structured intent (`intent`, `item`, `amount`, `time_period`, `payment_method`, `goal`).
+- **Deterministic Mathematics**: All financial numbers, compounding timelines, EMI schedules, and risk alerts are computed strictly by deterministic engines without LLM calculation hallucinations.
+- **Pluggable Storage**: Uses a repository pattern with `PostgresTransactionRepository` and `PostgresGoalRepository` backed by `psycopg` (v3), with seamless fallback to in-memory storage for offline testing when unconfigured.
 
 ---
+
+## 🤖 Amazon Bedrock Integration (AI Interpretation Layer)
+
+MoneyLens uses **Amazon Bedrock Runtime Converse API** with model **`amazon.nova-micro-v1:0`** in **`us-east-1`**.
+
+### Role & Guardrails
+- **Natural Language Parsing**: Maps user questions (e.g. *"Can I buy a ₹70,000 phone next month?"*) to structured parameters.
+- **Zero Math Invention**: The LLM never invents calculations, claims certainty, or executes financial calculations.
+- **Clean Fallbacks**: Malformed model outputs and AWS errors are handled gracefully and return structured HTTP responses.
+
+### AWS Configuration & Environment Variables
+AWS credentials are never hardcoded. You can configure them via environment variables or standard AWS credential profiles:
+
+| Environment Variable | Default | Description |
+|---|---|---|
+| `AWS_REGION` | `us-east-1` | AWS Region for Amazon Bedrock Runtime |
+| `BEDROCK_MODEL_ID` | `amazon.nova-micro-v1:0` | Amazon Bedrock model identifier |
+| `AWS_ACCESS_KEY_ID` | *(None / IAM Role)* | AWS Access Key (optional if using IAM/profile) |
+| `AWS_SECRET_ACCESS_KEY` | *(None / IAM Role)* | AWS Secret Access Key |
+| `AWS_SESSION_TOKEN` | *(None)* | AWS Session Token (for temporary credentials) |
+
+---
+
+## 🗄️ Database Integration (PostgreSQL / AWS RDS with psycopg)
+
+MoneyLens supports direct database persistence on **PostgreSQL / AWS RDS** using the **`psycopg` (v3)** driver.
+
+### Key Behaviors
+1. **Zero Auto-seeding**: When connected to PostgreSQL / RDS, tables start completely empty and store only data explicitly inserted via API calls.
+2. **Strict Error Surfacing**: When database configuration is provided, any connection failure surfaces explicitly (no silent fallback). In-memory storage is used only when no database configuration is provided (for standalone testing / local development).
+3. **Encrypted Connections**: Default SSL mode is set to `require` for AWS RDS security compliance.
+
+### Database Configuration & Environment Variables
+Configure your database connection using either a single `DATABASE_URL` or individual RDS parameters:
+
+| Environment Variable | AWS RDS Alias | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | — | *(None)* | Full PostgreSQL connection URI |
+| `DB_HOST` | `RDS_HOSTNAME` | *(None)* | PostgreSQL / RDS endpoint hostname |
+| `DB_PORT` | `RDS_PORT` | `5432` | Database port |
+| `DB_NAME` | `RDS_DB_NAME` | `moneylens` | Database name |
+| `DB_USER` | `RDS_USERNAME` | *(None)* | Master username |
+| `DB_PASSWORD` | `RDS_PASSWORD` | *(None)* | Master password |
+| `DB_SSLMODE` | `RDS_SSLMODE` | `require` | SSL connection mode (`require` / `prefer` / `disable`) |
+
 
 ## 📂 Project Structure
 
@@ -195,7 +255,34 @@ $$\text{Additional Monthly Needed} = \max(0, \text{Required Monthly Saving} - \t
 
 ---
 
-### 2. Transaction Processing
+### 2. AI Interpretation Layer (Amazon Bedrock)
+
+#### `POST /api/v1/ai/analyze`
+Interprets natural language queries using Amazon Bedrock Converse API (`amazon.nova-micro-v1:0` in `us-east-1`).
+
+**Request:**
+```json
+{
+  "message": "Can I buy a ₹70,000 phone next month?"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "intent": "purchase_simulation",
+  "item": "phone",
+  "amount": 70000.0,
+  "time_period": "next_month",
+  "payment_method": null,
+  "goal": null
+}
+```
+
+---
+
+### 3. Transaction Processing
+
 
 #### `POST /api/v1/transactions`
 **Request:**

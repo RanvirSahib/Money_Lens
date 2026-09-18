@@ -47,6 +47,10 @@ from app.schemas.radar import (
     RadarProfileRequest,
     FinancialRadarResponse,
 )
+from app.schemas.ai import (
+    AIAnalyzeRequest,
+    AIAnalyzeResponse,
+)
 
 __all__ = [
     "SeverityLevel",
@@ -86,4 +90,7 @@ __all__ = [
     "RadarAlert",
     "RadarProfileRequest",
     "FinancialRadarResponse",
+    "AIAnalyzeRequest",
+    "AIAnalyzeResponse",
 ]
+

@@ -7,6 +7,7 @@ from app.services.simulation_service import simulation_service, SimulationServic
 from app.services.goal_service import goal_service, GoalService
 from app.services.experiment_service import experiment_service, ExperimentService
 from app.services.radar_service import radar_service, RadarService
+from app.services.bedrock_service import bedrock_service, BedrockService, BedrockServiceError
 
 __all__ = [
     "transaction_repository",
@@ -19,4 +20,8 @@ __all__ = [
     "ExperimentService",
     "radar_service",
     "RadarService",
+    "bedrock_service",
+    "BedrockService",
+    "BedrockServiceError",
 ]
+
