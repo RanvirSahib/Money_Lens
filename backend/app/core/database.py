@@ -95,6 +95,7 @@ def init_db() -> None:
     CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(64) PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
+        username VARCHAR(64) UNIQUE,
         name VARCHAR(255) NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         monthly_income NUMERIC(14, 2) DEFAULT 85000.0,
@@ -105,12 +106,27 @@ def init_db() -> None:
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE TABLE IF NOT EXISTS email_otps (
+        id VARCHAR(64) PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        otp_code VARCHAR(16) NOT NULL,
+        purpose VARCHAR(32) NOT NULL DEFAULT 'auth',
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_email_otps_email ON email_otps(email);
+    CREATE INDEX IF NOT EXISTS idx_email_otps_code ON email_otps(email, otp_code);
     """
     logger.info("Initializing PostgreSQL schema tables on RDS/PostgreSQL...")
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(ddl)
+            # Safe column migration for existing installations
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(64) UNIQUE;")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);")
     logger.info("PostgreSQL schema tables verified and ready.")
 
 

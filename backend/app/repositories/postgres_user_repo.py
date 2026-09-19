@@ -32,20 +32,22 @@ class PostgresUserRepository:
         exp = float(data.monthly_expenses or 35000.0)
         sav = float(data.current_savings or 150000.0)
         score = self.calculate_health_score(inc, exp, sav)
+        uname = (data.username or data.email.split("@")[0]).strip().lower()
 
         query = """
         INSERT INTO users (
-            id, email, name, password_hash,
+            id, email, username, name, password_hash,
             monthly_income, monthly_expenses, current_savings, health_score
         ) VALUES (
-            %(id)s, %(email)s, %(name)s, %(password_hash)s,
+            %(id)s, %(email)s, %(username)s, %(name)s, %(password_hash)s,
             %(monthly_income)s, %(monthly_expenses)s, %(current_savings)s, %(health_score)s
         )
-        RETURNING id, email, name, monthly_income, monthly_expenses, current_savings, health_score, created_at;
+        RETURNING id, email, username, name, monthly_income, monthly_expenses, current_savings, health_score, created_at;
         """
         params = {
             "id": user_id,
             "email": data.email.lower().strip(),
+            "username": uname,
             "name": data.name.strip(),
             "password_hash": pwd_hash,
             "monthly_income": inc,
@@ -61,7 +63,7 @@ class PostgresUserRepository:
 
     def get_by_email(self, email: str) -> Optional[dict]:
         query = """
-        SELECT id, email, name, password_hash, monthly_income, monthly_expenses, current_savings, health_score, created_at
+        SELECT id, email, username, name, password_hash, monthly_income, monthly_expenses, current_savings, health_score, created_at
         FROM users
         WHERE LOWER(email) = LOWER(%(email)s);
         """
@@ -70,9 +72,33 @@ class PostgresUserRepository:
                 cur.execute(query, {"email": email.strip()})
                 return cur.fetchone()
 
+    def get_by_username(self, username: str) -> Optional[dict]:
+        query = """
+        SELECT id, email, username, name, password_hash, monthly_income, monthly_expenses, current_savings, health_score, created_at
+        FROM users
+        WHERE LOWER(username) = LOWER(%(username)s);
+        """
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, {"username": username.strip()})
+                return cur.fetchone()
+
+    def get_by_identifier(self, identifier: str) -> Optional[dict]:
+        """Looks up a user by either email or username."""
+        clean = identifier.strip().lower()
+        query = """
+        SELECT id, email, username, name, password_hash, monthly_income, monthly_expenses, current_savings, health_score, created_at
+        FROM users
+        WHERE LOWER(email) = %(val)s OR LOWER(username) = %(val)s;
+        """
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, {"val": clean})
+                return cur.fetchone()
+
     def get_by_id(self, user_id: str) -> Optional[UserResponse]:
         query = """
-        SELECT id, email, name, monthly_income, monthly_expenses, current_savings, health_score, created_at
+        SELECT id, email, username, name, monthly_income, monthly_expenses, current_savings, health_score, created_at
         FROM users
         WHERE id = %(id)s;
         """
@@ -104,7 +130,7 @@ class PostgresUserRepository:
             health_score = %(health_score)s,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = %(id)s
-        RETURNING id, email, name, monthly_income, monthly_expenses, current_savings, health_score, created_at;
+        RETURNING id, email, username, name, monthly_income, monthly_expenses, current_savings, health_score, created_at;
         """
         with get_db_connection() as conn:
             with conn.cursor() as cur:
