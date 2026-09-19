@@ -2,103 +2,64 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile } from '../types';
-
-export const DEMO_PROFILES: UserProfile[] = [
-  {
-    id: 'tech_pro',
-    name: 'Arjun Sharma',
-    email: 'arjun.sharma@moneylens.ai',
-    avatar: 'AS',
-    role: 'Tech Lead (Base ₹55K)',
-    monthlyIncome: 55000,
-    monthlyExpenses: 25000,
-    currentSavings: 40000,
-    healthScore: 84,
-  },
-  {
-    id: 'high_earner',
-    name: 'Priya Patel',
-    email: 'priya.patel@moneylens.ai',
-    avatar: 'PP',
-    role: 'Product Director (Base ₹1.5L)',
-    monthlyIncome: 150000,
-    monthlyExpenses: 60000,
-    currentSavings: 250000,
-    healthScore: 92,
-  },
-  {
-    id: 'early_career',
-    name: 'Rohan Mehta',
-    email: 'rohan.mehta@moneylens.ai',
-    avatar: 'RM',
-    role: 'Product Designer (Base ₹30K)',
-    monthlyIncome: 30000,
-    monthlyExpenses: 18000,
-    currentSavings: 15000,
-    healthScore: 76,
-  },
-];
+import { loginUser, registerUser, updateUserProfile, RegisterPayload } from '../lib/api/auth';
 
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
-  login: (email: string, pass?: string) => boolean;
-  loginWithProfile: (profileId: string) => void;
+  isLoading: boolean;
+  login: (email: string, password?: string) => Promise<UserProfile>;
+  signup: (payload: RegisterPayload) => Promise<UserProfile>;
   logout: () => void;
-  updateUserParams: (income: number, expenses: number, savings: number) => void;
+  updateUserParams: (income: number, expenses: number, savings: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(() => DEMO_PROFILES[0]);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Restore authenticated session from localStorage on client mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('moneylens_user');
+      const stored = localStorage.getItem('moneylens_user_account');
       if (stored) {
         setUser(JSON.parse(stored));
       }
     } catch {
-      // fallback
+      // Ignore parse failure
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const login = (email: string): boolean => {
-    const matched = DEMO_PROFILES.find((p) => p.email.toLowerCase() === email.toLowerCase()) || {
-      id: 'custom_user',
-      name: email.split('@')[0] || 'Investor',
-      email,
-      avatar: (email[0] || 'U').toUpperCase(),
-      role: 'Private Portfolio',
-      monthlyIncome: 55000,
-      monthlyExpenses: 25000,
-      currentSavings: 40000,
-      healthScore: 82,
-    };
-    setUser(matched);
+  const login = async (email: string, password: string = 'password123'): Promise<UserProfile> => {
+    const profile = await loginUser({ email, password });
+    setUser(profile);
     try {
-      localStorage.setItem('moneylens_user', JSON.stringify(matched));
+      localStorage.setItem('moneylens_user_account', JSON.stringify(profile));
     } catch {}
-    return true;
+    return profile;
   };
 
-  const loginWithProfile = (profileId: string) => {
-    const found = DEMO_PROFILES.find((p) => p.id === profileId) || DEMO_PROFILES[0];
-    setUser(found);
+  const signup = async (payload: RegisterPayload): Promise<UserProfile> => {
+    const profile = await registerUser(payload);
+    setUser(profile);
     try {
-      localStorage.setItem('moneylens_user', JSON.stringify(found));
+      localStorage.setItem('moneylens_user_account', JSON.stringify(profile));
     } catch {}
+    return profile;
   };
 
   const logout = () => {
     setUser(null);
     try {
-      localStorage.removeItem('moneylens_user');
+      localStorage.removeItem('moneylens_user_account');
     } catch {}
   };
 
-  const updateUserParams = (income: number, expenses: number, savings: number) => {
+  const updateUserParams = async (income: number, expenses: number, savings: number) => {
     if (!user) return;
     const updated: UserProfile = {
       ...user,
@@ -108,8 +69,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setUser(updated);
     try {
-      localStorage.setItem('moneylens_user', JSON.stringify(updated));
+      localStorage.setItem('moneylens_user_account', JSON.stringify(updated));
     } catch {}
+
+    try {
+      await updateUserProfile(user.id, {
+        monthly_income: income,
+        monthly_expenses: expenses,
+        current_savings: savings,
+      });
+    } catch (err) {
+      console.error('Failed to sync profile update to PostgreSQL RDS:', err);
+    }
   };
 
   return (
@@ -117,8 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated: !!user,
+        isLoading,
         login,
-        loginWithProfile,
+        signup,
         logout,
         updateUserParams,
       }}

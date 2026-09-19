@@ -187,9 +187,8 @@ def evaluate_saved_goal_endpoint(
 )
 def delete_saved_goal(goal_id: str):
     success = goal_service.repository.delete(goal_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Goal with ID '{goal_id}' not found."
-        )
-    return {"success": True, "message": f"Goal {goal_id} deleted."}
+    return {
+        "success": True, 
+        "message": f"Goal {goal_id} deleted successfully." if success else f"Goal {goal_id} was already removed.",
+        "deleted": success
+    }

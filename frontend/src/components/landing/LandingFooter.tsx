@@ -34,11 +34,11 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onNavigate }) => {
           </div>
 
           <div className="space-y-2 text-left">
-            <div className="font-mono text-white font-bold uppercase tracking-wider text-[11px]">Access & Health</div>
+            <div className="font-mono text-white font-bold uppercase tracking-wider text-[11px]">Access & Telemetry</div>
             <div className="flex flex-col space-y-2">
-              <button onClick={() => onNavigate('login')} className="text-left text-blue-400 hover:text-blue-300 font-medium cursor-pointer">Sign In / Demo Access →</button>
+              <button onClick={() => onNavigate('login')} className="text-left text-blue-400 hover:text-blue-300 font-medium cursor-pointer">Sign In / Register Account →</button>
               <span className="text-slate-500">Engine V4.2.0</span>
-              <span className="text-slate-500">FastAPI + Next.js 16</span>
+              <span className="text-slate-500">FastAPI + AWS RDS PostgreSQL</span>
             </div>
           </div>
         </div>

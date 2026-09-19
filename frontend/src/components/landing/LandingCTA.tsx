@@ -31,13 +31,13 @@ export const LandingCTA: React.FC<LandingCTAProps> = ({ onNavigate }) => {
             onClick={() => onNavigate('dashboard')}
             className="px-10 py-4 bg-white text-blue-900 hover:bg-slate-100 font-bold text-base rounded-full shadow-2xl transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
           >
-            Launch Mission Control App
+            Launch Mission Control
           </button>
           <button
             onClick={() => onNavigate('login')}
             className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-full border border-blue-400/40 shadow-lg transition-all cursor-pointer"
           >
-            Sign In with Demo Persona
+            Sign In / Create Account
           </button>
         </div>
       </motion.div>

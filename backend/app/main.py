@@ -14,6 +14,7 @@ from app.routes.goals import router as goals_router
 from app.routes.experiments import router as experiments_router
 from app.routes.radar import router as radar_router
 from app.routes.ai import router as ai_router
+from app.routes.auth import router as auth_router
 
 
 import logging
@@ -45,6 +46,7 @@ Provides deterministic financial calculations, forward & reverse simulation engi
 experiment comparison lab, rule-based financial radar, and Amazon Bedrock natural language interpretation layer.
 
 ### Canonical Public API: `/api/v1/...`
+* **Authentication**: `/api/v1/auth/signup`, `/api/v1/auth/login`, `/api/v1/auth/users/{user_id}`
 * **AI Interpretation**: `/api/v1/ai/analyze` (Amazon Bedrock `amazon.nova-micro-v1:0`)
 * **Transactions**: `/api/v1/transactions`, `/api/v1/transactions/summary`, `/api/v1/transactions/{txn_id}`
 * **Simulations**: `/api/v1/simulate/position`, `/api/v1/simulate/purchase`, `/api/v1/simulate/emi`, `/api/v1/simulate/savings`
@@ -69,6 +71,7 @@ app.add_middleware(
 )
 
 # Register Canonical /api/v1 Feature Routers
+app.include_router(auth_router, prefix=settings.API_PREFIX)
 app.include_router(transactions_router, prefix=settings.API_PREFIX)
 app.include_router(simulation_router, prefix=settings.API_PREFIX)
 app.include_router(goals_router, prefix=settings.API_PREFIX)

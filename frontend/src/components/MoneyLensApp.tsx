@@ -27,19 +27,19 @@ interface MoneyLensAppProps {
 function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
   const { user, updateUserParams } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<ScreenId>(initialScreen);
-  const [savings, setSavings] = useState(40000);
-  const [income, setIncome] = useState(55000);
-  const [expenses, setExpenses] = useState(25000);
-  const [healthScore, setHealthScore] = useState(84);
+  const [savings, setSavings] = useState(150000);
+  const [income, setIncome] = useState(85000);
+  const [expenses, setExpenses] = useState(35000);
+  const [healthScore, setHealthScore] = useState(88);
   const [trajectoryNodes, setTrajectoryNodes] = useState<TrajectoryNode[]>(
     INITIAL_TRAJECTORY_NODES
   );
 
-  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [infoModalType, setInfoModalType] = useState<'terms' | 'audit' | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [targetScreen, setTargetScreen] = useState<ScreenId>('dashboard');
 
   // Sync user profile changes to baseline calculations
   useEffect(() => {
@@ -54,6 +54,10 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
         baseline: user.currentSavings + n.monthIndex * (user.monthlyIncome - user.monthlyExpenses),
       }));
       setTrajectoryNodes(updated);
+
+      if (currentScreen === 'login') {
+        setCurrentScreen(targetScreen === 'login' ? 'dashboard' : targetScreen);
+      }
     }
   }, [user]);
 
@@ -65,6 +69,15 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
   };
 
   const handleNavigate = (screen: ScreenId) => {
+    const hasActiveSession = !!user || (typeof window !== 'undefined' && !!localStorage.getItem('moneylens_user_account'));
+
+    if (!hasActiveSession && screen !== 'landing' && screen !== 'login') {
+      setTargetScreen(screen);
+      setCurrentScreen('login');
+      showToast('Please sign in or create an account to access this tool.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -75,7 +88,7 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
 
   const handleConfirmIncome = (amt: number) => {
     setIncome(amt);
-    setHealthScore(88);
+    setHealthScore(90);
     updateUserParams(amt, expenses, savings);
     showToast(`Income updated to ₹${amt.toLocaleString('en-IN')}. Engine recalibrated.`);
   };
@@ -123,7 +136,6 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
       {/* Top Navigation Bar */}
       <Header
         currentScreen={currentScreen}
-        onOpenAI={() => setIsAIAssistantOpen(true)}
         onNavigate={handleNavigate}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenLogs={() => setIsLogsOpen(true)}
@@ -146,7 +158,7 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
             )}
 
             {currentScreen === 'login' && (
-              <LoginScreen onNavigate={handleNavigate} />
+              <LoginScreen onNavigate={handleNavigate} targetScreen={targetScreen} />
             )}
 
             {currentScreen === 'dashboard' && (
@@ -222,24 +234,6 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
       <InfoModal
         type={infoModalType}
         onClose={() => setInfoModalType(null)}
-      />
-
-      {/* Floating AI Copilot Trigger Button */}
-      <button
-        onClick={() => setIsAIAssistantOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white font-display font-bold text-xs shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20 group"
-      >
-        <div className="relative">
-          <span className="material-symbols-outlined text-[20px]">smart_toy</span>
-          <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-emerald-400 ring-2 ring-blue-600 animate-ping" />
-        </div>
-        <span>Ask AI Copilot</span>
-      </button>
-
-      {/* Interactive AI Copilot Drawer */}
-      <AIAssistantDrawer
-        isOpen={isAIAssistantOpen}
-        onClose={() => setIsAIAssistantOpen(false)}
       />
     </div>
   );

@@ -91,6 +91,21 @@ def init_db() -> None:
         priority VARCHAR(32),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(64) PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        monthly_income NUMERIC(14, 2) DEFAULT 85000.0,
+        monthly_expenses NUMERIC(14, 2) DEFAULT 35000.0,
+        current_savings NUMERIC(14, 2) DEFAULT 150000.0,
+        health_score INTEGER DEFAULT 88,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     """
     logger.info("Initializing PostgreSQL schema tables on RDS/PostgreSQL...")
     with get_db_connection() as conn:

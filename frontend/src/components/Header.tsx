@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScreenId } from '../types';
-import { useAuth, DEMO_PROFILES } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
   onOpenAI?: () => void;
@@ -16,17 +16,16 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentScreen,
-  onOpenAI,
   onNavigate,
   onOpenSettings,
   onOpenLogs,
   healthScore,
 }) => {
-  const { user, logout, loginWithProfile } = useAuth();
+  const { user, logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3);
+  const [unreadCount, setUnreadCount] = useState(2);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [notificationsOpen, profileDropdownOpen]);
 
-  const navItems: { id: ScreenId; label: string; badge?: string }[] = [
+  const protectedNavItems: { id: ScreenId; label: string; badge?: string }[] = [
     { id: 'landing', label: 'Overview' },
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'simulator', label: 'Simulator' },
@@ -55,6 +54,12 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'radar', label: 'Radar', badge: 'Live' },
     { id: 'lab', label: 'Lab' },
   ];
+
+  const publicNavItems: { id: ScreenId; label: string; badge?: string }[] = [
+    { id: 'landing', label: 'Overview' },
+  ];
+
+  const navItems = user ? protectedNavItems : publicNavItems;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_8px_-2px_rgba(15,23,42,0.04)] transition-all">
@@ -115,152 +120,128 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right: Streamlined Actions & Profile */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Health Score Pill */}
-          <div
-            className="hidden sm:flex items-center gap-1.5 bg-emerald-50/90 hover:bg-emerald-100/70 transition-colors px-3 py-1.5 border border-emerald-200/90 rounded-full shadow-2xs cursor-default"
-            title="Aggregated Financial Health Score"
-          >
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-display font-bold text-emerald-800">
-              {healthScore}/100
-            </span>
-          </div>
-
-          {/* Action Icons */}
-          <div className="flex items-center gap-1" ref={notifRef}>
-            {/* Settings Calibration */}
-            <button
-              onClick={onOpenSettings}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:scale-95 transition-all rounded-full border border-slate-200/80 shadow-2xs cursor-pointer"
-              title="Calibration Settings"
-            >
-              <span className="material-symbols-outlined text-[19px] leading-none block">
-                tune
-              </span>
-            </button>
-
-            {/* Notifications Trigger */}
-            <div className="relative">
-              <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className={`p-2 transition-all rounded-full border shadow-2xs relative cursor-pointer active:scale-95 ${
-                  notificationsOpen
-                    ? 'bg-blue-50 border-blue-300 text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-slate-200/80'
-                }`}
-                title="Notifications"
+          {user ? (
+            <>
+              {/* Health Score Pill */}
+              <div
+                className="hidden sm:flex items-center gap-1.5 bg-emerald-50/90 hover:bg-emerald-100/70 transition-colors px-3 py-1.5 border border-emerald-200/90 rounded-full shadow-2xs cursor-default"
+                title="Aggregated Financial Health Score"
               >
-                <span className="material-symbols-outlined text-[19px] leading-none block">
-                  notifications
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-display font-bold text-emerald-800">
+                  {healthScore}/100
                 </span>
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 size-2 bg-blue-600 rounded-full ring-2 ring-white animate-pulse" />
-                )}
-              </button>
+              </div>
 
-              {/* Notifications Dropdown */}
-              <AnimatePresence>
-                {notificationsOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="absolute top-12 right-0 w-80 sm:w-96 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-2xl p-4 z-50 space-y-2"
+              {/* Action Icons */}
+              <div className="flex items-center gap-1" ref={notifRef}>
+                {/* Calibration Settings */}
+                <button
+                  onClick={onOpenSettings}
+                  className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:scale-95 transition-all rounded-full border border-slate-200/80 shadow-2xs cursor-pointer"
+                  title="Calibration Settings"
+                >
+                  <span className="material-symbols-outlined text-[19px] leading-none block">
+                    tune
+                  </span>
+                </button>
+
+                {/* Notifications Trigger */}
+                <div className="relative">
+                  <button
+                    onClick={() => setNotificationsOpen(!notificationsOpen)}
+                    className={`p-2 transition-all rounded-full border shadow-2xs relative cursor-pointer active:scale-95 ${
+                      notificationsOpen
+                        ? 'bg-blue-50 border-blue-300 text-blue-700'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-slate-200/80'
+                    }`}
+                    title="Notifications"
                   >
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                      <div className="flex items-center gap-2 font-display font-bold text-xs text-slate-900">
-                        <span className="size-2 rounded-full bg-blue-600 animate-pulse" />
-                        <span>Telemetry Alerts ({unreadCount})</span>
-                      </div>
-                      <button
-                        onClick={() => setNotificationsOpen(false)}
-                        className="text-slate-400 hover:text-slate-700 text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors"
+                    <span className="material-symbols-outlined text-[19px] leading-none block">
+                      notifications
+                    </span>
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 size-2 bg-blue-600 rounded-full ring-2 ring-white animate-pulse" />
+                    )}
+                  </button>
+
+                  {/* Notifications Dropdown */}
+                  <AnimatePresence>
+                    {notificationsOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                        transition={{ duration: 0.15, ease: 'easeOut' }}
+                        className="absolute top-12 right-0 w-80 sm:w-96 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl shadow-2xl p-4 z-50 space-y-2"
                       >
-                        ESC
-                      </button>
-                    </div>
-
-                    <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pt-1 text-left">
-                      <div className="py-2.5 space-y-1 hover:bg-slate-50/80 p-2 rounded-xl transition-colors">
-                        <div className="flex items-center justify-between text-[11px] font-mono">
-                          <span className="text-emerald-700 font-bold bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">
-                            INCOME DETECT
-                          </span>
-                          <span className="text-slate-400">10m ago</span>
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                          <div className="flex items-center gap-2 font-display font-bold text-xs text-slate-900">
+                            <span className="size-2 rounded-full bg-blue-600 animate-pulse" />
+                            <span>Financial Alerts</span>
+                          </div>
+                          <button
+                            onClick={() => setNotificationsOpen(false)}
+                            className="text-slate-400 hover:text-slate-700 text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-100 transition-colors"
+                          >
+                            ESC
+                          </button>
                         </div>
-                        <p className="text-xs text-slate-800 leading-snug">
-                          Salary credits reached ₹55,000. Recalibration prompt active.
-                        </p>
-                      </div>
 
-                      <div className="py-2.5 space-y-1 hover:bg-slate-50/80 p-2 rounded-xl transition-colors">
-                        <div className="flex items-center justify-between text-[11px] font-mono">
-                          <span className="text-blue-700 font-bold bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded">
-                            TIME MACHINE
-                          </span>
-                          <span className="text-slate-400">1h ago</span>
+                        <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pt-1 text-left">
+                          <div className="py-2.5 space-y-1 hover:bg-slate-50/80 p-2 rounded-xl transition-colors">
+                            <div className="flex items-center justify-between text-[11px] font-mono">
+                              <span className="text-emerald-700 font-bold bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">
+                                AWS RDS CONNECTED
+                              </span>
+                              <span className="text-slate-400">Live</span>
+                            </div>
+                            <p className="text-xs text-slate-800 leading-snug">
+                              PostgreSQL database synchronized with live calculations.
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-800 leading-snug">
-                          Simulation SIM-HASH: 849F-2027 confirmed buffer safe at 1.6x.
-                        </p>
-                      </div>
 
-                      <div className="py-2.5 space-y-1 hover:bg-slate-50/80 p-2 rounded-xl transition-colors">
-                        <div className="flex items-center justify-between text-[11px] font-mono">
-                          <span className="text-amber-700 font-bold bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded">
-                            RADAR ALERT
-                          </span>
-                          <span className="text-slate-400">2h ago</span>
+                        <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
+                          <button
+                            onClick={() => {
+                              setNotificationsOpen(false);
+                              onNavigate('radar');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-display font-semibold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <span>View Cash Flow Radar</span>
+                            <span>→</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setUnreadCount(0);
+                              setNotificationsOpen(false);
+                            }}
+                            className="text-slate-500 hover:text-slate-800 text-xs font-medium transition-colors cursor-pointer"
+                          >
+                            Mark All Read
+                          </button>
                         </div>
-                        <p className="text-xs text-slate-800 leading-snug">
-                          Phone EMI of -₹6,667 scheduled in 8 days. Reserve account ready.
-                        </p>
-                      </div>
-                    </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-                    <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
-                      <button
-                        onClick={() => {
-                          setNotificationsOpen(false);
-                          onNavigate('radar');
-                        }}
-                        className="text-blue-600 hover:text-blue-800 font-display font-semibold text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <span>View Cash Radar</span>
-                        <span>→</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setUnreadCount(0);
-                          setNotificationsOpen(false);
-                        }}
-                        className="text-slate-500 hover:text-slate-800 text-xs font-medium transition-colors cursor-pointer"
-                      >
-                        Mark All Read
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                {/* Mobile Hamburger Trigger */}
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-full border border-slate-200/80 hover:bg-slate-100 transition-colors"
+                  aria-label="Toggle Navigation Drawer"
+                >
+                  <span className="material-symbols-outlined text-[20px] block">
+                    {mobileMenuOpen ? 'close' : 'menu'}
+                  </span>
+                </button>
+              </div>
 
-            {/* Mobile Hamburger Trigger */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-full border border-slate-200/80 hover:bg-slate-100 transition-colors"
-              aria-label="Toggle Navigation Drawer"
-            >
-              <span className="material-symbols-outlined text-[20px] block">
-                {mobileMenuOpen ? 'close' : 'menu'}
-              </span>
-            </button>
-          </div>
-
-          {/* User Profile Pill */}
-          <div className="relative pl-1 sm:pl-2" ref={profileRef}>
-            {user ? (
-              <div>
+              {/* User Profile Pill */}
+              <div className="relative pl-1 sm:pl-2" ref={profileRef}>
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer group active:scale-95 whitespace-nowrap"
@@ -293,25 +274,35 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">SWITCH DEMO PERSONA</div>
-                        {DEMO_PROFILES.map((p) => (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              loginWithProfile(p.id);
-                              setProfileDropdownOpen(false);
-                            }}
-                            className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer ${
-                              user.id === p.id
-                                ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/60'
-                                : 'hover:bg-slate-50 text-slate-700'
-                            }`}
-                          >
-                            <span className="font-display font-medium">{p.name}</span>
-                            <span className="font-mono text-[10px] text-slate-500">₹{(p.monthlyIncome/1000).toFixed(0)}k/mo</span>
-                          </button>
-                        ))}
+                      <div className="space-y-2 text-xs">
+                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                          <div className="flex justify-between text-slate-500 font-medium">
+                            <span>Monthly Income:</span>
+                            <span className="font-mono font-bold text-slate-900">₹{user.monthlyIncome.toLocaleString('en-IN')}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-500 font-medium">
+                            <span>Monthly Expenses:</span>
+                            <span className="font-mono font-bold text-slate-900">₹{user.monthlyExpenses.toLocaleString('en-IN')}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-500 font-medium pt-1 border-t border-slate-200">
+                            <span>Net Surplus:</span>
+                            <span className="font-mono font-bold text-emerald-700">₹{(user.monthlyIncome - user.monthlyExpenses).toLocaleString('en-IN')}/mo</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setProfileDropdownOpen(false);
+                            onOpenSettings();
+                          }}
+                          className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 font-display font-semibold text-xs flex items-center justify-between transition-colors cursor-pointer"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[18px] text-slate-400">tune</span>
+                            <span>Calibrate Portfolio</span>
+                          </span>
+                          <span className="material-symbols-outlined text-[16px] text-slate-400">chevron_right</span>
+                        </button>
                       </div>
 
                       <div className="pt-2 border-t border-slate-100 flex justify-between">
@@ -322,7 +313,7 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className="text-xs text-blue-600 font-display font-semibold hover:underline cursor-pointer"
                         >
-                          Login Screen
+                          Switch Account
                         </button>
                         <button
                           onClick={() => {
@@ -339,15 +330,34 @@ export const Header: React.FC<HeaderProps> = ({
                   )}
                 </AnimatePresence>
               </div>
-            ) : (
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => onNavigate('login')}
-                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-display font-bold text-xs rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
+                className="px-3.5 py-1.5 text-xs font-display font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
               >
                 Sign In
               </button>
-            )}
-          </div>
+              <button
+                onClick={() => onNavigate('login')}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-display font-bold text-xs rounded-full shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                Get Started
+              </button>
+            </div>
+          )}
+
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            aria-label="Toggle Navigation Menu"
+          >
+            <span className="material-symbols-outlined text-[20px] block">
+              {mobileMenuOpen ? 'close' : 'menu'}
+            </span>
+          </button>
         </div>
       </div>
 
