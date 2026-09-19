@@ -36,6 +36,12 @@ class ExperimentCompareRequest(BaseModel):
     target_goal_amount: Optional[float] = Field(default=500000.0, ge=0, examples=[500000.0])
     target_goal_months: Optional[int] = Field(default=12, ge=1, examples=[12])
     scenarios: List[ScenarioInput] = Field(..., min_length=2)
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Comparing cash vs EMI vs no purchase for laptop."],
+        description="Optional brief context note passed to the AI insight service"
+    )
 
 
 class ScenarioMetricResult(BaseModel):
@@ -61,3 +67,9 @@ class ExperimentCompareResponse(BaseModel):
     comparison_matrix: List[ScenarioMetricResult]
     summary_insights: List[str]
     assumptions: List[str]
+
+
+class ExperimentCompareAnalysisResponse(BaseModel):
+    calculation: ExperimentCompareResponse
+    ai_insight: Dict[str, Any]
+

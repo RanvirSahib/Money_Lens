@@ -3,7 +3,8 @@ export type AnalysisType =
   | "goal_analysis"
   | "reverse_analysis"
   | "experiment_analysis"
-  | "radar_analysis";
+  | "radar_analysis"
+  | "clarification_needed";
 
 export interface FinancialPositionPayload {
   monthly_income?: number;
@@ -70,11 +71,45 @@ export interface AIInsightRequest {
 export interface AIInsightResponse {
   analysis_type: AnalysisType;
   headline: string;
+  summary?: string;
   observations: string[];
   evidence: string[];
   implications: string[];
-  trade_offs: string[];
-  what_to_watch: string[];
+  trade_offs?: string[];
+  risks?: string[];
+  what_to_watch?: string[];
   possible_actions: string[];
   confidence_score: number;
+}
+
+export interface ParsedFinancialIntent {
+  intent: AnalysisType;
+  raw_query: string;
+  item?: string | null;
+  amount?: number | null;
+  timeline_months?: number | null;
+  payment_method?: string | null;
+  goal_title?: string | null;
+  confidence_score: number;
+  is_ambiguous: boolean;
+  clarification_question?: string | null;
+  extracted_entities?: Record<string, any>;
+}
+
+export interface AIQueryRequest {
+  query: string;
+  monthly_income?: number;
+  monthly_expenses?: number;
+  current_savings?: number;
+  existing_emi?: number;
+}
+
+export interface AIQueryResponse {
+  status: "success" | "clarification_needed" | "error";
+  intent: string;
+  capability: string;
+  parsed_entities: Record<string, any>;
+  calculation?: Record<string, any>;
+  ai_insight?: AIInsightResponse;
+  clarification_question?: string | null;
 }

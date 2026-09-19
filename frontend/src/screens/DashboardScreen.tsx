@@ -3,8 +3,8 @@
 import React from 'react';
 import { TrajectoryNode, SimulationResult, CashFlowItem, ScreenId } from '../types';
 import { CommandCenterHero } from '../components/CommandCenterHero';
+import { NaturalLanguageDecisionInput } from '../components/ai/NaturalLanguageDecisionInput';
 import { TrajectoryVisualizer } from '../components/TrajectoryVisualizer';
-import { FinancialTimeMachine } from '../components/FinancialTimeMachine';
 import { ReverseTimeMachine } from '../components/ReverseTimeMachine';
 import { FinancialRadar } from '../components/FinancialRadar';
 import { EvidenceIntelligence } from '../components/EvidenceIntelligence';
@@ -42,13 +42,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       monthly_expenses: expenses,
       current_savings: savings,
       monthly_surplus: income - expenses,
-      emergency_fund_months: expenses > 0 ? Number((savings / expenses).toFixed(1)) : 3.5,
+      emergency_fund_months: expenses > 0 ? Number((savings / expenses).toFixed(1)) : 4.4,
     },
   });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      {/* 1. HERO & COMMAND CENTER TELEMETRY */}
+      {/* 1. FINANCIAL SNAPSHOT HERO */}
       <CommandCenterHero
         onSimulateClick={() => onNavigate('simulator')}
         onExploreClick={() => onNavigate('lab')}
@@ -59,7 +59,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         goalProgress={68}
       />
 
-      {/* 2. INTERACTIVE 3D FINANCIAL FUTURE TRAJECTORY */}
+      {/* 2. MAIN NATURAL LANGUAGE AI DECISION CENTER */}
+      <NaturalLanguageDecisionInput
+        monthlyIncome={income}
+        monthlyExpenses={expenses}
+        currentSavings={savings}
+      />
+
+      {/* 3. INTERACTIVE 3D FINANCIAL FUTURE TRAJECTORY */}
       <TrajectoryVisualizer
         nodes={trajectoryNodes}
         selectedMonth={3}
@@ -68,18 +75,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         }}
       />
 
-      {/* 3. FINANCIAL TIME MACHINE (SIMULATOR) */}
-      <FinancialTimeMachine
-        onSimulationChange={onSimulationChange}
-        currentSavings={savings}
-        monthlyIncome={income}
-        monthlyExpenses={expenses}
-      />
-
-      {/* 4. TWO-COLUMN STRATEGIC SECTION */}
+      {/* 4. TWO-COLUMN STRATEGIC SECTION: REVERSE PLANNER & RADAR RISKS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <ReverseTimeMachine
-          targetAmount={100000}
+          targetAmount={500000}
           currentAmount={savings}
           monthlyIncome={income}
           monthlyExpenses={expenses}
@@ -93,7 +92,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         />
       </div>
 
-      {/* 5. EVIDENCE-BASED AI INTELLIGENCE */}
+      {/* 5. EVIDENCE-BASED AI INTELLIGENCE & HEALTH VITALS */}
       <div className="space-y-8">
         <EvidenceIntelligence
           insights={insights}

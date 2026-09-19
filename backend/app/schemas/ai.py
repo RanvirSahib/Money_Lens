@@ -1,9 +1,10 @@
 """
-Pydantic Schemas for AI Interpretation Layer (Amazon Bedrock).
+Pydantic Schemas for AI Interpretation Layer (Amazon Bedrock & Groq & Intent Parser).
 Defines request and structured response models for natural language financial queries.
 """
 
-from typing import Optional
+from typing import Optional, Any, Dict, List
+from enum import Enum
 from pydantic import BaseModel, Field
 
 
@@ -51,13 +52,19 @@ class AIAnalyzeResponse(BaseModel):
     )
 
 
+class ParseIntentRequest(BaseModel):
+    """Natural language request for the intent parser."""
+    query: str = Field(
+        ...,
+        min_length=1,
+        examples=["I want to buy a 6 lakh car"],
+        description="User natural language financial query"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Schemas for Groq-powered MoneyLens AI microservice (:8001) Integration
 # ---------------------------------------------------------------------------
-
-from enum import Enum
-from typing import Any, Dict, List
-
 
 class AnalysisType(str, Enum):
     """The five MoneyLens AI modes."""
@@ -151,3 +158,31 @@ class AIInsightResponse(BaseModel):
     possible_actions: List[str] = Field(default_factory=list)
     confidence_score: float = 0.90
 
+
+# ---------------------------------------------------------------------------
+# End-to-End Query Schemas
+# ---------------------------------------------------------------------------
+
+class AIQueryRequest(BaseModel):
+    """Unified natural language query request."""
+    query: str = Field(
+        ...,
+        min_length=1,
+        examples=["I want to buy a 6 lakh car"],
+        description="Natural language query from user"
+    )
+    monthly_income: Optional[float] = None
+    monthly_expenses: Optional[float] = None
+    current_savings: Optional[float] = None
+    existing_emi: Optional[float] = None
+
+
+class AIQueryResponse(BaseModel):
+    """Complete unified financial decision response."""
+    status: str = Field(default="success", description="'success' or 'clarification_needed'")
+    intent: str
+    capability: str
+    parsed_entities: Dict[str, Any] = Field(default_factory=dict)
+    calculation: Optional[Dict[str, Any]] = None
+    ai_insight: Optional[Dict[str, Any]] = None
+    clarification_question: Optional[str] = None

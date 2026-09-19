@@ -13,6 +13,12 @@ class FinancialPositionRequest(BaseModel):
     monthly_expenses: float = Field(..., ge=0, examples=[45000.0], description="Regular monthly living expenses")
     current_savings: float = Field(..., ge=0, examples=[200000.0], description="Current liquid bank savings / corpus")
     existing_emi: float = Field(default=0.0, ge=0, examples=[5000.0], description="Ongoing monthly loan/EMI commitments")
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Assessing current baseline runway."],
+        description="Optional brief context note passed to the AI insight service"
+    )
 
 
 class FinancialPositionResponse(BaseModel):
@@ -37,6 +43,12 @@ class PurchaseSimulationRequest(BaseModel):
     purchase_amount: float = Field(..., gt=0, examples=[70000.0], description="Upfront cost of the desired purchase")
     existing_emi: float = Field(default=0.0, ge=0, examples=[0.0])
     duration_months: int = Field(default=12, ge=3, le=60, examples=[12])
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Evaluating buying a flagship smartphone in cash."],
+        description="Optional brief context note passed to the AI insight service"
+    )
 
 
 class TrajectoryPoint(BaseModel):
@@ -78,6 +90,12 @@ class EMISimulationRequest(BaseModel):
     monthly_expenses: float = Field(..., ge=0, examples=[45000.0])
     current_savings: float = Field(..., ge=0, examples=[200000.0])
     existing_emi: float = Field(default=0.0, ge=0, examples=[0.0])
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Evaluating 12-month EMI option vs lump sum."],
+        description="Optional brief context note passed to the AI insight service"
+    )
 
 
 class EMISimulationResponse(BaseModel):
@@ -111,6 +129,12 @@ class SavingsProjectionRequest(BaseModel):
     monthly_growth_rate_pct: float = Field(default=0.0, ge=0, examples=[0.0])
     annual_return_pct: Optional[float] = Field(default=7.0, ge=0, le=100, examples=[7.0], description="Expected annual investment return %")
     duration_months: int = Field(default=12, ge=1, le=120, examples=[12])
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Projecting wealth accumulation at 7% annual compounding."],
+        description="Optional brief context note passed to the AI insight service"
+    )
 
 
 class SavingsProjectionResponse(BaseModel):
@@ -123,3 +147,29 @@ class SavingsProjectionResponse(BaseModel):
     milestones: Dict[str, float]
     monthly_trajectory: List[TrajectoryPoint]
     assumptions: List[str]
+
+
+# ------------------ Time Machine AI Combined Responses ------------------
+class PurchaseSimulationAnalysisResponse(BaseModel):
+    baseline_position: FinancialPositionResponse
+    calculation: PurchaseSimulationResponse
+    ai_insight: Dict[str, Any]
+
+
+class EMISimulationAnalysisResponse(BaseModel):
+    baseline_position: FinancialPositionResponse
+    calculation: EMISimulationResponse
+    ai_insight: Dict[str, Any]
+
+
+class SavingsSimulationAnalysisResponse(BaseModel):
+    baseline_position: FinancialPositionResponse
+    calculation: SavingsProjectionResponse
+    ai_insight: Dict[str, Any]
+
+
+class TimeMachineAnalysisResponse(BaseModel):
+    baseline_position: FinancialPositionResponse
+    calculation: Dict[str, Any]
+    ai_insight: Dict[str, Any]
+

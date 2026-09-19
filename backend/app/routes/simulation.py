@@ -1,20 +1,19 @@
-"""
-Simulation API Routes.
-Provides endpoints for position, purchase, EMI, and future savings simulations.
-"""
-
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, HTTPException
 from app.schemas.simulation import (
     FinancialPositionRequest,
     FinancialPositionResponse,
     PurchaseSimulationRequest,
     PurchaseSimulationResponse,
+    PurchaseSimulationAnalysisResponse,
     EMISimulationRequest,
     EMISimulationResponse,
+    EMISimulationAnalysisResponse,
     SavingsProjectionRequest,
     SavingsProjectionResponse,
+    SavingsSimulationAnalysisResponse,
 )
 from app.services.simulation_service import simulation_service
+from app.services.ai_insight_service import ai_insight_service, AIInsightServiceError
 
 router = APIRouter(prefix="/simulate", tags=["Simulation Engine"])
 
@@ -54,6 +53,31 @@ def simulate_purchase(payload: PurchaseSimulationRequest):
 
 
 @router.post(
+    "/purchase/analyze",
+    response_model=PurchaseSimulationAnalysisResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Simulate an upfront cash purchase with AI Time Machine insight"
+)
+def simulate_and_analyze_purchase(payload: PurchaseSimulationRequest):
+    """
+    Simulate cash purchase impact and generate AI Time Machine explanation.
+    Combines baseline position + purchase simulation output into AI time_machine analysis.
+    """
+    try:
+        return ai_insight_service.analyze_purchase_simulation(
+            req=payload,
+            context_note=payload.context_note
+        )
+    except AIInsightServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred during purchase AI analysis: {str(exc)}"
+        )
+
+
+@router.post(
     "/emi",
     response_model=EMISimulationResponse,
     status_code=status.HTTP_200_OK,
@@ -72,6 +96,31 @@ def simulate_emi(payload: EMISimulationRequest):
 
 
 @router.post(
+    "/emi/analyze",
+    response_model=EMISimulationAnalysisResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Simulate an EMI financed purchase with AI Time Machine insight"
+)
+def simulate_and_analyze_emi(payload: EMISimulationRequest):
+    """
+    Simulate EMI loan impact and generate AI Time Machine explanation.
+    Combines baseline position + EMI simulation output into AI time_machine analysis.
+    """
+    try:
+        return ai_insight_service.analyze_emi_simulation(
+            req=payload,
+            context_note=payload.context_note
+        )
+    except AIInsightServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred during EMI AI analysis: {str(exc)}"
+        )
+
+
+@router.post(
     "/savings",
     response_model=SavingsProjectionResponse,
     status_code=status.HTTP_200_OK,
@@ -85,3 +134,29 @@ def simulate_savings(payload: SavingsProjectionRequest):
     - Milestones at 3, 6, 12, 24, 36, 60 months
     """
     return simulation_service.project_savings(payload)
+
+
+@router.post(
+    "/savings/analyze",
+    response_model=SavingsSimulationAnalysisResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Project future compounding savings trajectory with AI Time Machine insight"
+)
+def simulate_and_analyze_savings(payload: SavingsProjectionRequest):
+    """
+    Project savings trajectory and generate AI Time Machine explanation.
+    Combines baseline position + savings projection output into AI time_machine analysis.
+    """
+    try:
+        return ai_insight_service.analyze_savings_simulation(
+            req=payload,
+            context_note=payload.context_note
+        )
+    except AIInsightServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred during savings AI analysis: {str(exc)}"
+        )
+

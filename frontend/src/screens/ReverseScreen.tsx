@@ -38,20 +38,20 @@ export const ReverseScreen: React.FC<ReverseScreenProps> = ({
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 lg:p-8 shadow-sm">
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 lg:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-mono font-medium text-indigo-600 uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700 uppercase tracking-wider">
               <span className="material-symbols-outlined text-[18px]">
                 history_toggle_off
               </span>
-              <span>BACKWARD-PROPAGATION SOLVER</span>
+              <span>Backward-Propagation Solver</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 mt-1">
-              Reverse Time Machine
+              Reverse Goal Engineering
             </h1>
             <p className="text-sm text-slate-600 mt-1">
-              Select any target deadline and let our optimization engine solve the exact budget levers required.
+              Pick your target goal amount and deadline. Money Lens calculates the exact monthly saving and expense levers needed.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -76,8 +76,8 @@ export const ReverseScreen: React.FC<ReverseScreenProps> = ({
         insights={insights}
         loading={loading}
         onRefresh={refresh}
-        title="BACKWARD-PROPAGATED AI INTELLIGENCE"
-        subtitle="BUDGET REALLOCATION LEVERS"
+        title="Reverse Goal AI Intelligence"
+        subtitle="Budget Reallocation Levers"
       />
     </div>
   );

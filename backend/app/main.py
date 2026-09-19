@@ -107,16 +107,24 @@ def root_index():
             f"{settings.API_PREFIX}/transactions/{{txn_id}}",
             f"{settings.API_PREFIX}/simulate/position",
             f"{settings.API_PREFIX}/simulate/purchase",
+            f"{settings.API_PREFIX}/simulate/purchase/analyze",
             f"{settings.API_PREFIX}/simulate/emi",
+            f"{settings.API_PREFIX}/simulate/emi/analyze",
             f"{settings.API_PREFIX}/simulate/savings",
+            f"{settings.API_PREFIX}/simulate/savings/analyze",
             f"{settings.API_PREFIX}/goals",
+            f"{settings.API_PREFIX}/goals/analyze",
             f"{settings.API_PREFIX}/goals/reverse",
+            f"{settings.API_PREFIX}/goals/reverse/analyze",
             f"{settings.API_PREFIX}/goals/saved",
             f"{settings.API_PREFIX}/goals/save",
             f"{settings.API_PREFIX}/goals/saved/{{goal_id}}",
+            f"{settings.API_PREFIX}/goals/saved/{{goal_id}}/analyze",
             f"{settings.API_PREFIX}/experiments/compare",
+            f"{settings.API_PREFIX}/experiments/compare/analyze",
             f"{settings.API_PREFIX}/radar",
-            f"{settings.API_PREFIX}/radar/analyze"
+            f"{settings.API_PREFIX}/radar/analyze",
+            f"{settings.API_PREFIX}/radar/analyze/insights"
         ]
     }
 

@@ -21,6 +21,7 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
   expenses = 25000,
 }) => {
   const [purchaseAmount, setPurchaseAmount] = useState(80000);
+  const [scenarioQuery, setScenarioQuery] = useState('I want to buy an ₹80,000 phone');
   const [interestRate, setInterestRate] = useState(14);
   const [tenure, setTenure] = useState(12);
 
@@ -38,9 +39,11 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
       current_savings: savings,
       monthly_surplus: income - expenses,
       emergency_fund_months: expenses > 0 ? Number((savings / expenses).toFixed(1)) : 3.0,
+      projected_balance_3_months: savings + 3 * (income - expenses),
+      projected_balance_12_months: savings + 12 * (income - expenses),
     },
     simulation_result: {
-      scenario: 'purchase_impact',
+      scenario: scenarioQuery,
       data: {
         purchase_amount: purchaseAmount,
         interest_rate: interestRate,
@@ -49,6 +52,7 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
         total_repayment: totalRepayment,
       },
     },
+    context_note: scenarioQuery,
   });
 
   const scenarios = [
@@ -57,17 +61,17 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
       monthly: 0,
       initialHit: purchaseAmount,
       totalCost: purchaseAmount,
-      bufferRisk: 'Elevated (Drops to 0.4 mo)',
-      recommendation: 'Not Recommended',
-      badgeColor: 'rose',
+      bufferRisk: 'Immediate liquidity impact',
+      recommendation: 'Zero Interest Outlay',
+      badgeColor: 'blue',
     },
     {
       name: `Active EMI (${tenure} Months @ ${interestRate}%)`,
       monthly: monthlyEMI,
       initialHit: 0,
       totalCost: totalRepayment,
-      bufferRisk: 'Moderate (Safe buffer 1.3 mo)',
-      recommendation: 'Optimal Balance',
+      bufferRisk: 'Ongoing monthly liability',
+      recommendation: 'Preserves Liquid Buffer',
       badgeColor: 'blue',
     },
     {
@@ -75,8 +79,8 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
       monthly: Math.round(purchaseAmount / 6),
       initialHit: 0,
       totalCost: purchaseAmount,
-      bufferRisk: 'Minimal (Buffer intact at 1.8 mo)',
-      recommendation: 'Safest Vector',
+      bufferRisk: 'Zero debt / buffer intact',
+      recommendation: 'Planned Sinking Fund',
       badgeColor: 'emerald',
     },
     {
@@ -84,8 +88,8 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
       monthly: Math.round(purchaseAmount / 12),
       initialHit: 0,
       totalCost: totalRepayment,
-      bufferRisk: 'Low (Bonus offsets ₹50,000)',
-      recommendation: 'High Strategic Advantage',
+      bufferRisk: 'Cash reserve rebuilt',
+      recommendation: 'Deferred Purchase',
       badgeColor: 'emerald',
     },
   ];
@@ -122,6 +126,10 @@ export const SimulatorScreen: React.FC<SimulatorScreenProps> = ({
         currentSavings={savings}
         monthlyIncome={income}
         monthlyExpenses={expenses}
+        onSimulationChange={(res) => {
+          setPurchaseAmount(res.cost);
+          setScenarioQuery(res.query);
+        }}
       />
 
       {/* AI Intelligence Panel */}

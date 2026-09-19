@@ -35,6 +35,12 @@ class RadarProfileRequest(BaseModel):
     monthly_expenses: Optional[float] = Field(default=None, ge=0, examples=[45000.0])
     current_savings: Optional[float] = Field(default=None, ge=0, examples=[200000.0])
     existing_emi: Optional[float] = Field(default=None, ge=0, examples=[5000.0])
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Reviewing financial risk signals after a high monthly expense."],
+        description="Optional brief context note passed to the AI insight service"
+    )
 
 
 class FinancialRadarResponse(BaseModel):
@@ -45,3 +51,9 @@ class FinancialRadarResponse(BaseModel):
     metrics_summary: Dict[str, Any]
     radar_rules_evaluated: int
     assumptions: List[str]
+
+
+class FinancialRadarAnalysisResponse(BaseModel):
+    calculation: FinancialRadarResponse
+    ai_insight: Dict[str, Any]
+

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SimulationResult } from '../types';
+import { parseIndianCurrency } from '@/lib/utils/currency';
 
 interface FinancialTimeMachineProps {
   onSimulationChange?: (result: SimulationResult) => void;
@@ -24,13 +25,8 @@ export const FinancialTimeMachine: React.FC<FinancialTimeMachineProps> = ({
   >('emi_active');
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // Extract amount from query or fallback
-  const parseAmount = (q: string): number => {
-    const match = q.replace(/,/g, '').match(/\d+/);
-    return match ? parseInt(match[0], 10) : 80000;
-  };
-
-  const currentCost = parseAmount(query);
+  // Extract amount from natural language query with full Indian currency support
+  const currentCost = parseIndianCurrency(query) ?? 80000;
   const monthlySurplus = Math.max(0, monthlyIncome - monthlyExpenses - existingEmi);
   const baselineSavings = currentSavings + 12 * monthlySurplus;
 
@@ -150,12 +146,16 @@ export const FinancialTimeMachine: React.FC<FinancialTimeMachineProps> = ({
 
   const simResult = computeSimulation();
 
+  useEffect(() => {
+    onSimulationChange?.(simResult);
+  }, [currentCost, decision, monthlyIncome, monthlyExpenses, existingEmi]);
+
   const handleRunSimulation = () => {
     setIsSimulating(true);
     setTimeout(() => {
       setIsSimulating(false);
       onSimulationChange?.(simResult);
-    }, 450);
+    }, 300);
   };
 
   const handleSelectDecision = (

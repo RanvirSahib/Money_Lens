@@ -37,6 +37,13 @@ class GoalCalculationRequest(BaseModel):
     monthly_expenses: float = Field(..., ge=0, examples=[45000.0])
     existing_emi: float = Field(default=0.0, ge=0, examples=[0.0])
     expected_annual_return_pct: float = Field(default=0.0, ge=0, le=100, examples=[7.0])
+    title: Optional[str] = Field(default=None, examples=["Emergency Fund Corpus"], description="Goal title for AI insight context")
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Planning for an emergency cushion."],
+        description="Optional brief context note passed to the AI insight service"
+    )
 
 
 class GoalCalculationResponse(BaseModel):
@@ -55,6 +62,30 @@ class GoalCalculationResponse(BaseModel):
     assumptions: List[str]
 
 
+class GoalAnalysisResponse(BaseModel):
+    calculation: GoalCalculationResponse
+    ai_insight: Dict[str, Any]
+
+
+class SavedGoalAnalysisRequest(BaseModel):
+    monthly_income: Optional[float] = Field(default=80000.0, ge=0, examples=[80000.0])
+    monthly_expenses: Optional[float] = Field(default=45000.0, ge=0, examples=[45000.0])
+    existing_emi: Optional[float] = Field(default=0.0, ge=0, examples=[0.0])
+    expected_annual_return_pct: Optional[float] = Field(default=0.0, ge=0, le=100, examples=[0.0])
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Reviewing this saved goal."],
+        description="Optional brief context note passed to the AI insight service"
+    )
+
+
+class SavedGoalAnalysisResponse(BaseModel):
+    goal: GoalResponse
+    calculation: GoalCalculationResponse
+    ai_insight: Dict[str, Any]
+
+
 class ReverseGoalRequest(BaseModel):
     target_amount: float = Field(..., gt=0, examples=[500000.0], description="Corpus you wish to accumulate")
     target_months: int = Field(..., gt=0, le=360, examples=[12], description="Timeframe in months")
@@ -62,6 +93,12 @@ class ReverseGoalRequest(BaseModel):
     current_monthly_expenses: Optional[float] = Field(default=45000.0, ge=0, examples=[45000.0])
     existing_emi: Optional[float] = Field(default=0.0, ge=0, examples=[0.0])
     expected_annual_return_pct: float = Field(default=0.0, ge=0, le=100, examples=[0.0])
+    context_note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        examples=["Planning for an emergency cushion before shifting careers."],
+        description="Optional brief context note passed to the AI insight service"
+    )
 
 
 class ReverseGoalResponse(BaseModel):
@@ -74,3 +111,10 @@ class ReverseGoalResponse(BaseModel):
     alternative_timeline_at_current_surplus_months: Optional[int]
     actionable_levers: Dict[str, Any]
     assumptions: List[str]
+
+
+class ReverseGoalAnalysisResponse(BaseModel):
+    calculation: ReverseGoalResponse
+    ai_insight: Dict[str, Any]
+
+

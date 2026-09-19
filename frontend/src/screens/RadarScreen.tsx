@@ -30,25 +30,25 @@ export const RadarScreen: React.FC<RadarScreenProps> = ({
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 lg:p-8 shadow-sm">
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 lg:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-mono font-medium text-amber-600 uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-700 uppercase tracking-wider">
               <span className="material-symbols-outlined text-[18px]">
                 radar
               </span>
-              <span>SURVEILLANCE &amp; LIQUIDITY RADAR</span>
+              <span>Financial Risk &amp; Liquidity Radar</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 mt-1">
-              Financial Radar &amp; Cash Flow Telemetry
+              Financial Radar &amp; Runway Intelligence
             </h1>
             <p className="text-sm text-slate-600 mt-1">
-              Detect upcoming liquidity troughs, recurring expense burdens, and protect cash runway buffers.
+              Detect upcoming liquidity troughs, recurring expense clusters, and protect cash runway buffers.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg font-semibold">
-              30-DAY TELEMETRIC HORIZON
+            <span className="text-xs font-mono px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg font-semibold">
+              30-DAY OUTLOOK
             </span>
           </div>
         </div>
@@ -66,8 +66,8 @@ export const RadarScreen: React.FC<RadarScreenProps> = ({
         insights={insights}
         loading={loading}
         onRefresh={refresh}
-        title="CASH FLOW RADAR AI SURVEILLANCE"
-        subtitle="LIQUIDITY SHORTAGE PREVENTATIVE INTELLIGENCE"
+        title="Cash Flow Risk Intelligence"
+        subtitle="Liquidity Buffer Surveillance"
       />
     </div>
   );

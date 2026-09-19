@@ -36,6 +36,9 @@ class Settings(BaseModel):
     AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default_factory=lambda: os.getenv("AWS_SECRET_ACCESS_KEY", None))
     AWS_SESSION_TOKEN: Optional[str] = Field(default_factory=lambda: os.getenv("AWS_SESSION_TOKEN", None))
 
+    # Independent MoneyLens AI Insight Service Configuration
+    AI_SERVICE_URL: str = Field(default_factory=lambda: os.getenv("AI_SERVICE_URL", "http://localhost:8001"))
+
     # PostgreSQL / AWS RDS Configuration
     DATABASE_URL: Optional[str] = Field(default_factory=lambda: os.getenv("DATABASE_URL", None))
     DB_HOST: Optional[str] = Field(default_factory=lambda: os.getenv("DB_HOST", os.getenv("RDS_HOSTNAME", None)))
