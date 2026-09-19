@@ -6,6 +6,7 @@ import { ScreenId } from '../types';
 import { useAuth, DEMO_PROFILES } from '../context/AuthContext';
 
 interface HeaderProps {
+  onOpenAI?: () => void;
   currentScreen: ScreenId;
   onNavigate: (screen: ScreenId) => void;
   onOpenSettings: () => void;
@@ -15,6 +16,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentScreen,
+  onOpenAI,
   onNavigate,
   onOpenSettings,
   onOpenLogs,

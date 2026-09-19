@@ -18,6 +18,7 @@ import { LabScreen } from '../screens/LabScreen';
 import { SysLogsModal } from './SysLogsModal';
 import { SettingsModal } from './SettingsModal';
 import { InfoModal } from './InfoModals';
+import { AIAssistantDrawer } from './AIAssistantDrawer';
 
 interface MoneyLensAppProps {
   initialScreen?: ScreenId;
@@ -34,6 +35,7 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
     INITIAL_TRAJECTORY_NODES
   );
 
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [infoModalType, setInfoModalType] = useState<'terms' | 'audit' | null>(null);
@@ -121,6 +123,7 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
       {/* Top Navigation Bar */}
       <Header
         currentScreen={currentScreen}
+        onOpenAI={() => setIsAIAssistantOpen(true)}
         onNavigate={handleNavigate}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenLogs={() => setIsLogsOpen(true)}
@@ -219,6 +222,24 @@ function MoneyLensAppInner({ initialScreen = 'landing' }: MoneyLensAppProps) {
       <InfoModal
         type={infoModalType}
         onClose={() => setInfoModalType(null)}
+      />
+
+      {/* Floating AI Copilot Trigger Button */}
+      <button
+        onClick={() => setIsAIAssistantOpen(true)}
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white font-display font-bold text-xs shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20 group"
+      >
+        <div className="relative">
+          <span className="material-symbols-outlined text-[20px]">smart_toy</span>
+          <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-emerald-400 ring-2 ring-blue-600 animate-ping" />
+        </div>
+        <span>Ask AI Copilot</span>
+      </button>
+
+      {/* Interactive AI Copilot Drawer */}
+      <AIAssistantDrawer
+        isOpen={isAIAssistantOpen}
+        onClose={() => setIsAIAssistantOpen(false)}
       />
     </div>
   );
