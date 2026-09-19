@@ -31,14 +31,11 @@ def send_otp_endpoint(payload: SendOtpRequest):
     Generates a secure 6-digit OTP, stores it in PostgreSQL RDS with a 10-minute expiry,
     and sends it via email (or logs it in development/sandbox mode).
     """
-    import os
-    code = otp_service.create_and_store_otp(payload.email, payload.purpose or "auth")
-    has_smtp = bool(os.getenv("SMTP_SERVER") and os.getenv("SMTP_USERNAME") and os.getenv("SMTP_PASSWORD"))
+    code = otp_service.create_and_store_otp(payload.email, payload.purpose or "Registration")
     return OtpResponse(
         success=True,
         email=payload.email,
-        message=f"Verification code sent to {payload.email}.",
-        sandbox_otp=None if has_smtp else code
+        message=f"Verification code sent to {payload.email}."
     )
 
 

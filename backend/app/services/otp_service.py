@@ -32,42 +32,56 @@ class OtpService:
         Dispatches OTP email via standard SMTP if configured.
         Falls back to logging for development/sandbox mode.
         """
-        smtp_server = os.getenv("SMTP_SERVER")
+        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         smtp_user = os.getenv("SMTP_USERNAME")
         smtp_pass = os.getenv("SMTP_PASSWORD")
-        from_email = os.getenv("SMTP_FROM_EMAIL", "no-reply@moneylens.io")
+        from_email = os.getenv("SMTP_FROM_EMAIL") or smtp_user or "ranvir.sahibadv88@gmail.com"
 
         if smtp_server and smtp_user and smtp_pass:
             try:
                 msg = MIMEMultipart("alternative")
-                msg["Subject"] = f"{otp_code} is your MoneyLens {purpose} Code"
+                msg["Subject"] = f"{otp_code} is your MoneyLens Verification Code"
                 msg["From"] = f"MoneyLens Security <{from_email}>"
                 msg["To"] = to_email
 
-                html = f"""
-                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
-                    <h2 style="color: #002992; margin-bottom: 8px;">MoneyLens Security</h2>
-                    <p style="color: #475569; font-size: 14px;">Use the 6-digit verification code below to complete your {purpose.lower()}:</p>
-                    <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                        <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #002992;">{otp_code}</span>
-                    </div>
-                    <p style="color: #64748b; font-size: 12px;">This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-                </div>
-                """
-                msg.attach(MIMEText(html, "html"))
+                text_content = f"Your MoneyLens verification code is: {otp_code}\n\nThis code expires in 10 minutes."
+                html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+</head>
+<body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #030712; color: #f8fafc;">
+    <div style="max-width: 500px; margin: 0 auto; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #38bdf8; font-size: 24px; margin: 0; font-weight: 800; letter-spacing: -0.5px;">MoneyLens</h1>
+            <p style="color: #94a3b8; font-size: 13px; margin-top: 4px;">AI-Powered Predictive Financial Platform</p>
+        </div>
+        <div style="background: #1e293b; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 0; margin-bottom: 12px;">Your 6-digit {purpose.lower()} code is:</p>
+            <div style="font-family: monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #38bdf8; background: #0f172a; padding: 14px; border-radius: 8px; display: inline-block;">
+                {otp_code}
+            </div>
+            <p style="color: #64748b; font-size: 12px; margin-top: 12px; margin-bottom: 0;">⏱️ Valid for 10 minutes</p>
+        </div>
+        <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center; margin: 0;">
+            If you did not request this verification code, you can safely ignore this email.
+        </p>
+    </div>
+</body>
+</html>"""
+                msg.attach(MIMEText(text_content, "plain"))
+                msg.attach(MIMEText(html_content, "html"))
 
-                with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+                with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
                     server.starttls()
                     server.login(smtp_user, smtp_pass)
                     server.send_message(msg)
-                logger.info(f"Sent OTP email to {to_email} via SMTP")
+                logger.info(f"Successfully dispatched OTP email to {to_email} via SMTP ({smtp_server})")
                 return True
             except Exception as e:
-                logger.warning(f"Failed to send OTP via SMTP: {e}. Falling back to sandbox/console.")
-        
-        logger.info(f"[MONEYLENS OTP DISPATCH] Email: {to_email} | OTP: {otp_code} | Purpose: {purpose}")
-        return False
+                logger.error(f"Failed to send OTP via SMTP: {e}")
+                raise e
 
     @classmethod
     def create_and_store_otp(cls, email: str, purpose: str = "auth") -> str:

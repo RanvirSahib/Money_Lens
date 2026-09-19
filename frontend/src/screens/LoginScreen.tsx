@@ -27,7 +27,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate }) => {
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  const [sandboxCode, setSandboxCode] = useState<string | null>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -105,15 +104,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate }) => {
 
     setIsAuthenticating(true);
     try {
-      const res = await sendOtp(email.trim(), 'signup');
+      await sendOtp(email.trim(), 'signup');
       setIsAuthenticating(false);
-      if (res.sandbox_otp) {
-        setSandboxCode(res.sandbox_otp);
-      }
       setSignupStep('otp');
       setResendTimer(60);
       setCanResend(false);
-      setInfoMessage(`6-digit verification code dispatched to ${email.trim()}.`);
+      setInfoMessage(`A 6-digit verification code has been dispatched to ${email.trim()}. Please check your email.`);
       // Focus first OTP input box
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
@@ -202,13 +198,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate }) => {
     if (!canResend) return;
     setErrorMessage(null);
     try {
-      const res = await sendOtp(email.trim(), 'signup');
+      await sendOtp(email.trim(), 'signup');
       setResendTimer(60);
       setCanResend(false);
-      if (res.sandbox_otp) {
-        setSandboxCode(res.sandbox_otp);
-      }
-      setInfoMessage(`New verification code sent to ${email.trim()}.`);
+      setInfoMessage(`New 6-digit verification code sent to ${email.trim()}.`);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Failed to resend code.');
     }
@@ -328,16 +321,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate }) => {
           )}
 
           {infoMessage && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium flex items-center justify-between gap-2 animate-in fade-in duration-200">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[16px] shrink-0 text-emerald-600">mark_email_read</span>
-                <span>{infoMessage}</span>
-              </div>
-              {sandboxCode && (
-                <span className="px-2 py-0.5 bg-emerald-200 text-emerald-900 font-mono font-bold rounded-md text-[11px]">
-                  Code: {sandboxCode}
-                </span>
-              )}
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium flex items-center gap-2 animate-in fade-in duration-200">
+              <span className="material-symbols-outlined text-[16px] shrink-0 text-emerald-600">mark_email_read</span>
+              <span>{infoMessage}</span>
             </div>
           )}
 
