@@ -349,8 +349,9 @@ export function AuthFields({ mode }: { mode: Mode }) {
             <div className="relative">
               <Input
                 id="identifier"
+                name="username"
                 type="text"
-                autoComplete="username"
+                autoComplete="username email"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="e.g. ranvir_singh or investor@monexa.io"
@@ -376,6 +377,7 @@ export function AuthFields({ mode }: { mode: Mode }) {
             <div className="relative">
               <Input
                 id="login-password"
+                name="password"
                 type={showLoginPassword ? "text" : "password"}
                 autoComplete="current-password"
                 value={loginPassword}
@@ -564,6 +566,7 @@ export function AuthFields({ mode }: { mode: Mode }) {
           </Label>
           <Input
             id="fullname"
+            name="fullname"
             type="text"
             autoComplete="name"
             value={name}
@@ -582,6 +585,7 @@ export function AuthFields({ mode }: { mode: Mode }) {
           </Label>
           <Input
             id="signup-email"
+            name="email"
             type="email"
             autoComplete="email"
             value={email}
@@ -601,6 +605,7 @@ export function AuthFields({ mode }: { mode: Mode }) {
             </Label>
             <Input
               id="mobile"
+              name="mobile"
               type="tel"
               autoComplete="tel"
               value={mobile}
@@ -617,6 +622,7 @@ export function AuthFields({ mode }: { mode: Mode }) {
             </Label>
             <Input
               id="username"
+              name="username"
               type="text"
               autoComplete="username"
               value={username}
@@ -637,6 +643,7 @@ export function AuthFields({ mode }: { mode: Mode }) {
           <div className="relative">
             <Input
               id="signup-password"
+              name="new-password"
               type={showSignupPassword ? "text" : "password"}
               autoComplete="new-password"
               value={signupPassword}

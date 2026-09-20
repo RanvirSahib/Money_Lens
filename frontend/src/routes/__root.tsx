@@ -5,9 +5,8 @@ import {
   createRootRouteWithContext,
   useRouter,
   HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -106,25 +105,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -151,15 +135,23 @@ function RootComponent() {
     const elements = document.querySelectorAll(".reveal-on-scroll, .scroll-reveal");
     elements.forEach((el) => observer.observe(el));
 
-    // Re-observe dynamic elements on DOM mutations
+    // Re-observe dynamic elements on DOM mutations (debounced to avoid microtask flooding)
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const mutationObserver = new MutationObserver(() => {
-      const newElements = document.querySelectorAll(".reveal-on-scroll:not(.is-revealed), .scroll-reveal:not(.is-revealed)");
-      newElements.forEach((el) => observer.observe(el));
+      if (debounceTimer) return;
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        const newElements = document.querySelectorAll(
+          ".reveal-on-scroll:not(.is-revealed), .scroll-reveal:not(.is-revealed)"
+        );
+        newElements.forEach((el) => observer.observe(el));
+      }, 150);
     });
 
     mutationObserver.observe(document.body, { childList: true, subtree: true });
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       observer.disconnect();
       mutationObserver.disconnect();
     };
@@ -167,6 +159,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <HeadContent />
       {/* Dynamic top reading & scroll depth indicator */}
       <div className="scroll-progress-bar" aria-hidden="true" />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
