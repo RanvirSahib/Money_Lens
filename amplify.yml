@@ -7,6 +7,7 @@ applications:
           commands:
             - nvm use 22 || nvm install 22
             - node -v
+            - rm -rf node_modules
             - npm install --legacy-peer-deps
         build:
           commands:
@@ -18,4 +19,3 @@ applications:
       cache:
         paths:
           - node_modules/**/*
-
