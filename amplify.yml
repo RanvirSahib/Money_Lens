@@ -12,7 +12,7 @@ applications:
           commands:
             - npm run build
       artifacts:
-        baseDirectory: .amplify-hosting
+        baseDirectory: dist
         files:
           - '**/*'
       cache:

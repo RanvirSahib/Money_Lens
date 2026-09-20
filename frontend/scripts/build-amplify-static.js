@@ -2,26 +2,34 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const rootDir = process.cwd();
-const amplifyDir = path.join(rootDir, '.amplify-hosting');
-const staticDir = path.join(amplifyDir, 'static');
+const distDir = path.join(rootDir, 'dist');
 
-// Ensure static directory exists
-fs.mkdirSync(staticDir, { recursive: true });
+// Ensure dist directory exists and is clean
+if (fs.existsSync(distDir)) {
+  fs.rmSync(distDir, { recursive: true, force: true });
+}
+fs.mkdirSync(distDir, { recursive: true });
 
-// Copy all files from .output/public to .amplify-hosting/static
+// Copy all files from .output/public to dist if present
 const outputPublicDir = path.join(rootDir, '.output', 'public');
 if (fs.existsSync(outputPublicDir)) {
-  fs.cpSync(outputPublicDir, staticDir, { recursive: true });
+  fs.cpSync(outputPublicDir, distDir, { recursive: true });
 }
 
-// Copy public/ folder to static/
+// Copy all files from .amplify-hosting/static to dist if present
+const amplifyStaticDir = path.join(rootDir, '.amplify-hosting', 'static');
+if (fs.existsSync(amplifyStaticDir)) {
+  fs.cpSync(amplifyStaticDir, distDir, { recursive: true });
+}
+
+// Copy public/ folder to dist/
 const publicDir = path.join(rootDir, 'public');
 if (fs.existsSync(publicDir)) {
-  fs.cpSync(publicDir, staticDir, { recursive: true });
+  fs.cpSync(publicDir, distDir, { recursive: true });
 }
 
-// Locate compiled assets in static/assets
-const assetsDir = path.join(staticDir, 'assets');
+// Locate compiled assets in dist/assets
+const assetsDir = path.join(distDir, 'assets');
 let cssAssetTag = '';
 let jsAssetTag = '<script type="module" src="/src/main.tsx"></script>';
 
@@ -38,7 +46,7 @@ if (fs.existsSync(assetsDir)) {
   }
 }
 
-// Generate production static index.html
+// Generate production static index.html in dist/
 const indexHtmlContent = `<!doctype html>
 <html lang="en">
   <head>
@@ -59,40 +67,12 @@ const indexHtmlContent = `<!doctype html>
 </html>
 `;
 
-fs.writeFileSync(path.join(staticDir, 'index.html'), indexHtmlContent);
+fs.writeFileSync(path.join(distDir, 'index.html'), indexHtmlContent);
 
-// Remove compute/ directory if generated so AWS Amplify never provisions a failing Lambda
-const computeDir = path.join(amplifyDir, 'compute');
-if (fs.existsSync(computeDir)) {
-  fs.rmSync(computeDir, { recursive: true, force: true });
+// Remove .amplify-hosting directory so Amplify only looks at dist/
+const amplifyDir = path.join(rootDir, '.amplify-hosting');
+if (fs.existsSync(amplifyDir)) {
+  fs.rmSync(amplifyDir, { recursive: true, force: true });
 }
 
-// Write the official static-only deploy-manifest.json for AWS Amplify CDN
-const manifest = {
-  version: 1,
-  routes: [
-    {
-      path: "/*.*",
-      target: {
-        kind: "Static",
-      },
-    },
-    {
-      path: "/*",
-      target: {
-        kind: "Static",
-      },
-      fallback: {
-        kind: "Static",
-        src: "/index.html",
-      },
-    },
-  ],
-};
-
-fs.writeFileSync(
-  path.join(amplifyDir, 'deploy-manifest.json'),
-  JSON.stringify(manifest, null, 2),
-);
-
-console.log('✅ Generated AWS Amplify Static CDN bundle in .amplify-hosting/ (zero Lambda compute)');
+console.log('✅ Generated pure static SPA bundle in dist/ (AWS Amplify S3/CloudFront ready)');
