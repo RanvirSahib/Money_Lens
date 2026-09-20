@@ -116,9 +116,9 @@ def test_init_db_executes_ddl_when_configured():
         
         init_db()
         assert mock_cur.execute.called
-        call_args = mock_cur.execute.call_args[0][0]
-        assert "CREATE TABLE IF NOT EXISTS transactions" in call_args
-        assert "CREATE TABLE IF NOT EXISTS goals" in call_args
+        all_sql = " ".join(call[0][0] for call in mock_cur.execute.call_args_list)
+        assert "CREATE TABLE IF NOT EXISTS transactions" in all_sql
+        assert "CREATE TABLE IF NOT EXISTS goals" in all_sql
 
 
 def test_check_db_health():

@@ -15,6 +15,10 @@ from app.routes.experiments import router as experiments_router
 from app.routes.radar import router as radar_router
 from app.routes.ai import router as ai_router
 from app.routes.auth import router as auth_router
+from app.routes.profile import router as profile_router
+from app.routes.statements import router as statements_router
+from app.routes.spending import router as spending_router
+from app.routes.chat import router as chat_router
 
 
 import logging
@@ -47,8 +51,10 @@ experiment comparison lab, rule-based financial radar, and Amazon Bedrock natura
 
 ### Canonical Public API: `/api/v1/...`
 * **Authentication**: `/api/v1/auth/signup`, `/api/v1/auth/login`, `/api/v1/auth/users/{user_id}`
-* **AI Interpretation**: `/api/v1/ai/analyze` (Amazon Bedrock `amazon.nova-micro-v1:0`)
-* **Transactions**: `/api/v1/transactions`, `/api/v1/transactions/summary`, `/api/v1/transactions/{txn_id}`
+* **Profile**: `/api/v1/profile`, `/api/v1/profile/discrepancies`
+* **Spending**: `/api/v1/spending/insights`
+* **Statements**: `/api/v1/statements/upload`, `/api/v1/statements/history`
+* **Chat**: `/api/v1/chat/message`, `/api/v1/chat/confirm-action`
 * **Simulations**: `/api/v1/simulate/position`, `/api/v1/simulate/purchase`, `/api/v1/simulate/emi`, `/api/v1/simulate/savings`
 * **Goals**: `/api/v1/goals`, `/api/v1/goals/reverse`, `/api/v1/goals/saved`, `/api/v1/goals/save`, `/api/v1/goals/saved/{goal_id}`
 * **Experiment Lab**: `/api/v1/experiments/compare`
@@ -72,6 +78,10 @@ app.add_middleware(
 
 # Register Canonical /api/v1 Feature Routers
 app.include_router(auth_router, prefix=settings.API_PREFIX)
+app.include_router(profile_router, prefix=settings.API_PREFIX)
+app.include_router(spending_router, prefix=settings.API_PREFIX)
+app.include_router(statements_router, prefix=settings.API_PREFIX)
+app.include_router(chat_router, prefix=settings.API_PREFIX)
 app.include_router(transactions_router, prefix=settings.API_PREFIX)
 app.include_router(simulation_router, prefix=settings.API_PREFIX)
 app.include_router(goals_router, prefix=settings.API_PREFIX)

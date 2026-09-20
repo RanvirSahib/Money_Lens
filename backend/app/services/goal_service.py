@@ -119,6 +119,11 @@ class GoalService:
     def __init__(self, repository=None):
         self.repository = repository if repository is not None else GoalRepositoryProxy()
 
+    def get_saved_goals(self) -> List[GoalResponse]:
+        return self.repository.get_all()
+
+    def save_goal(self, req: GoalCreateRequest) -> GoalResponse:
+        return self.repository.create(req)
 
     @staticmethod
     def calculate_forward_goal(req: GoalCalculationRequest) -> GoalCalculationResponse:
