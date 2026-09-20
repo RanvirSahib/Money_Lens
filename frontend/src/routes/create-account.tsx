@@ -3,6 +3,7 @@ import { AuthFields } from "@/components/auth-fields";
 import { AuthShell } from "@/components/auth-shell";
 
 export const Route = createFileRoute("/create-account")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Create account — Monexa" }, { name: "description", content: "Create your secure Monexa account and start building a clearer financial picture." }, { property: "og:title", content: "Create account — Monexa" }, { property: "og:description", content: "Start building a clearer view of your money." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: CreateAccountPage,
 });

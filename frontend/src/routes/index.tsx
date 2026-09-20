@@ -29,6 +29,7 @@ import { submitFeedback } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Monexa — Personal Financial Intelligence Platform" },
