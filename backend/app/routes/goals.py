@@ -118,14 +118,17 @@ def calculate_and_analyze_reverse_goal_endpoint(payload: ReverseGoalRequest):
 
 
 
+from fastapi import APIRouter, status, HTTPException, Body, Query
+
+
 @router.get(
     "/saved",
     response_model=List[GoalResponse],
     summary="List all saved user financial goals"
 )
-def list_saved_goals():
+def list_saved_goals(user_id: Optional[str] = Query(default=None)):
     """List tracked user goals stored in repository."""
-    return goal_service.repository.get_all()
+    return goal_service.repository.get_all(user_id=user_id)
 
 
 @router.post(
@@ -134,9 +137,9 @@ def list_saved_goals():
     status_code=status.HTTP_201_CREATED,
     summary="Save a financial goal"
 )
-def save_goal(payload: GoalCreateRequest):
+def save_goal(payload: GoalCreateRequest, user_id: Optional[str] = Query(default=None)):
     """Save a new goal for ongoing tracking."""
-    return goal_service.repository.create(payload)
+    return goal_service.repository.create(payload, user_id=user_id)
 
 
 @router.post(
@@ -185,10 +188,11 @@ def evaluate_saved_goal_endpoint(
     status_code=status.HTTP_200_OK,
     summary="Delete a saved goal"
 )
-def delete_saved_goal(goal_id: str):
-    success = goal_service.repository.delete(goal_id)
+def delete_saved_goal(goal_id: str, user_id: Optional[str] = Query(default=None)):
+    success = goal_service.repository.delete(goal_id, user_id=user_id)
     return {
         "success": True, 
         "message": f"Goal {goal_id} deleted successfully." if success else f"Goal {goal_id} was already removed.",
         "deleted": success
     }
+

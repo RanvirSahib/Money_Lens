@@ -16,6 +16,8 @@ class AlertCategory(str, Enum):
     LOW_BALANCE_RISK = "low_balance_risk"
     CASH_FLOW_SHORTAGE = "cash_flow_shortage"
     DEBT_BURDEN_RISK = "debt_burden_risk"
+    WEALTH_ACCELERATION = "wealth_acceleration"
+    SAVINGS_SURPLUS = "savings_surplus"
 
 
 class RadarAlert(BaseModel):
@@ -28,6 +30,11 @@ class RadarAlert(BaseModel):
     threshold_value: float
     trigger_rule: str
     impact: str
+    implication: Optional[str] = None
+    possible_action: Optional[str] = None
+    action_type: Optional[str] = None
+    action_link: Optional[str] = None
+    evidence: Optional[str] = None
 
 
 class RadarProfileRequest(BaseModel):

@@ -414,7 +414,8 @@ def calculate_reverse_goal(
     target_amount: float,
     target_months: int,
     current_monthly_surplus: float,
-    expected_annual_return_pct: float = 0.0
+    expected_annual_return_pct: float = 0.0,
+    current_savings_allocated: float = 0.0
 ) -> Dict[str, Any]:
     """
     Reverse goal calculator.
@@ -425,6 +426,7 @@ def calculate_reverse_goal(
         target_months: Number of months.
         current_monthly_surplus: Current monthly savings capacity.
         expected_annual_return_pct: Investment return expectation.
+        current_savings_allocated: Already accumulated savings allocated toward this goal.
 
     Returns:
         dict: Required monthly saving, additional amount required, and actionable trade-off levers.
@@ -432,9 +434,13 @@ def calculate_reverse_goal(
     if target_months <= 0:
         target_months = 1
 
-    if target_amount <= 0:
+    net_target_to_save = max(0.0, target_amount - current_savings_allocated)
+
+    if net_target_to_save <= 0:
         return {
-            "target_amount": 0.0,
+            "target_amount": round(target_amount, 2),
+            "current_savings_allocated": round(current_savings_allocated, 2),
+            "remaining_target_amount": 0.0,
             "target_months": target_months,
             "levers": {
                 "required_monthly_saving": 0.0,
@@ -444,25 +450,27 @@ def calculate_reverse_goal(
                 "alternative_timeline_at_current_surplus_months": 0
             },
             "assumptions": [
-                "Target corpus is ₹0.00",
+                f"Target corpus of ₹{target_amount:,.2f} is already achieved with ₹{current_savings_allocated:,.2f} allocated savings",
                 "No additional savings required"
             ]
         }
 
     if expected_annual_return_pct > 0:
         r = math.pow(1 + (expected_annual_return_pct / 100.0), 1 / 12.0) - 1
-        if r > 0:
-            required_monthly_saving = target_amount * r / (math.pow(1 + r, target_months) - 1)
+        compounded_growth_of_initial = current_savings_allocated * math.pow(1 + r, target_months)
+        corpus_needed_from_sip = max(0.0, target_amount - compounded_growth_of_initial)
+        if r > 0 and corpus_needed_from_sip > 0:
+            required_monthly_saving = corpus_needed_from_sip * r / (math.pow(1 + r, target_months) - 1)
         else:
-            required_monthly_saving = target_amount / target_months
+            required_monthly_saving = corpus_needed_from_sip / target_months
     else:
-        required_monthly_saving = target_amount / target_months
+        required_monthly_saving = net_target_to_save / target_months
 
     required_monthly_saving = round(required_monthly_saving, 2)
     additional_monthly_needed = round(max(0.0, required_monthly_saving - current_monthly_surplus), 2)
     
-    # Alternative Levers / Adjustments (Trade-offs)
-    extended_months_needed = math.ceil(target_amount / current_monthly_surplus) if current_monthly_surplus > 0 else None
+    # Alternative Levers / Adjustments (Trade-offs): months required at current surplus pace
+    extended_months_needed = math.ceil(net_target_to_save / current_monthly_surplus) if current_monthly_surplus > 0 else None
 
     levers = {
         "required_monthly_saving": required_monthly_saving,
@@ -474,10 +482,12 @@ def calculate_reverse_goal(
 
     return {
         "target_amount": round(target_amount, 2),
+        "current_savings_allocated": round(current_savings_allocated, 2),
+        "remaining_target_amount": round(net_target_to_save, 2),
         "target_months": target_months,
         "levers": levers,
         "assumptions": [
-            f"Target corpus of ₹{target_amount:,.2f} desired in {target_months} months",
+            f"Target corpus of ₹{target_amount:,.2f} (Net ₹{net_target_to_save:,.2f} after ₹{current_savings_allocated:,.2f} allocated) in {target_months} months",
             f"Calculated with {expected_annual_return_pct:.1f}% expected annual growth rate"
         ]
     }

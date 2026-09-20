@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class PendingActionPayload(BaseModel):
-    action_type: Literal["UPDATE_PROFILE", "CREATE_GOAL", "NONE"] = "NONE"
+    action_type: Literal["UPDATE_PROFILE", "CREATE_GOAL", "CREATE_EMI", "CREATE_SUBSCRIPTION", "CREATE_INVESTMENT", "NONE"] = "NONE"
     title: str = ""
     description: str = ""
     data: Dict[str, Any] = Field(default_factory=dict)
@@ -42,7 +42,7 @@ class ChatMessageResponse(BaseModel):
 
 
 class ConfirmActionRequest(BaseModel):
-    action_type: Literal["UPDATE_PROFILE", "CREATE_GOAL"]
+    action_type: Literal["UPDATE_PROFILE", "CREATE_GOAL", "CREATE_EMI", "CREATE_SUBSCRIPTION", "CREATE_INVESTMENT"]
     data: Dict[str, Any]
     user_id: Optional[str] = None
 
@@ -51,3 +51,4 @@ class ConfirmActionResponse(BaseModel):
     status: str
     message: str
     updated_entity: Dict[str, Any]
+

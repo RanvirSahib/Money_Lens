@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Money Lens" },
+      { title: "Monexa" },
       {
         name: "description",
         content:
-          "Money Lens is a financial intelligence platform for understanding spending, simulating decisions and planning ahead.",
+          "Monexa is a financial intelligence platform for understanding spending, simulating decisions and planning ahead.",
       },
-      { property: "og:title", content: "Money Lens" },
+      { property: "og:title", content: "Monexa" },
       {
         property: "og:description",
         content: "Premium financial intelligence with AI-powered insights.",
@@ -128,8 +128,46 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    // Universal Progressive Scroll Reveal Observer for all browsers
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-revealed");
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px -40px 0px",
+        threshold: 0.08,
+      }
+    );
+
+    const elements = document.querySelectorAll(".reveal-on-scroll, .scroll-reveal");
+    elements.forEach((el) => observer.observe(el));
+
+    // Re-observe dynamic elements on DOM mutations
+    const mutationObserver = new MutationObserver(() => {
+      const newElements = document.querySelectorAll(".reveal-on-scroll:not(.is-revealed), .scroll-reveal:not(.is-revealed)");
+      newElements.forEach((el) => observer.observe(el));
+    });
+
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
+      {/* Dynamic top reading & scroll depth indicator */}
+      <div className="scroll-progress-bar" aria-hidden="true" />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>

@@ -16,6 +16,7 @@ class GoalBase(BaseModel):
     target_date: Optional[date] = Field(default=None, examples=["2027-09-01"])
     category: Optional[str] = Field(default="Savings", examples=["Vehicle / Emergency / Travel"])
     priority: Optional[str] = Field(default="medium", examples=["high"])
+    user_id: Optional[str] = Field(default="usr_demo_01", examples=["usr_demo_01"])
 
 
 class GoalCreateRequest(GoalBase):
@@ -89,10 +90,13 @@ class SavedGoalAnalysisResponse(BaseModel):
 class ReverseGoalRequest(BaseModel):
     target_amount: float = Field(..., gt=0, examples=[500000.0], description="Corpus you wish to accumulate")
     target_months: int = Field(..., gt=0, le=360, examples=[12], description="Timeframe in months")
-    current_monthly_income: Optional[float] = Field(default=80000.0, ge=0, examples=[80000.0])
-    current_monthly_expenses: Optional[float] = Field(default=45000.0, ge=0, examples=[45000.0])
+    current_savings_allocated: Optional[float] = Field(default=0.0, ge=0, examples=[50000.0], description="Already saved capital")
+    current_monthly_income: Optional[float] = Field(default=None, ge=0, examples=[80000.0])
+    current_monthly_expenses: Optional[float] = Field(default=None, ge=0, examples=[45000.0])
     existing_emi: Optional[float] = Field(default=0.0, ge=0, examples=[0.0])
+    current_monthly_surplus: Optional[float] = Field(default=None, ge=0, examples=[35000.0])
     expected_annual_return_pct: float = Field(default=0.0, ge=0, le=100, examples=[0.0])
+    title: Optional[str] = Field(default=None, examples=["Emergency Fund"])
     context_note: Optional[str] = Field(
         default=None,
         max_length=300,
@@ -103,12 +107,16 @@ class ReverseGoalRequest(BaseModel):
 
 class ReverseGoalResponse(BaseModel):
     target_amount: float
+    current_savings_allocated: float = 0.0
+    remaining_target_amount: float = 0.0
     target_months: int
     required_monthly_saving: float
     current_monthly_surplus: float
     additional_monthly_needed: float
     is_currently_sufficient: bool
-    alternative_timeline_at_current_surplus_months: Optional[int]
+    is_feasible: Optional[bool] = None
+    alternative_timeline_at_current_surplus_months: Optional[int] = None
+    alternative_months_at_current_surplus: Optional[int] = None
     actionable_levers: Dict[str, Any]
     assumptions: List[str]
 

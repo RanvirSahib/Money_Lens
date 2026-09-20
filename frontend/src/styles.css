@@ -5,10 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Money Lens — Bright Premium Fintech design system.
+ * Monexa — Bright Premium Fintech design system.
  * Warm off-white canvas, white surfaces, emerald as a precise accent.
  * All colors are oklch tokens. Never hardcode colors in components.
  */
+
 
 @theme inline {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -133,6 +134,11 @@
 }
 
 @layer base {
+  html {
+    font-size: 17.5px;
+    scroll-behavior: smooth;
+  }
+
   * {
     border-color: var(--color-border);
   }
@@ -141,7 +147,10 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -161,4 +170,273 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+}
+
+@utility panel-interactive {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+    border-color: color-mix(in oklch, var(--color-primary) 35%, var(--color-border));
+  }
+}
+
+@utility btn-press {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+@utility animate-page-enter {
+  animation: pageEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-float {
+  animation: floatSlow 3.5s ease-in-out infinite;
+}
+
+@utility animate-pulse-subtle {
+  animation: pulseSubtle 2.5s ease-in-out infinite;
+}
+
+@utility animate-glow-ring {
+  animation: glowRing 2.5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@utility stagger-1 {
+  animation-delay: 60ms;
+}
+
+@utility stagger-2 {
+  animation-delay: 120ms;
+}
+
+@utility stagger-3 {
+  animation-delay: 180ms;
+}
+
+@utility stagger-4 {
+  animation-delay: 240ms;
+}
+
+@utility stagger-5 {
+  animation-delay: 300ms;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes glowRing {
+  0%, 100% {
+    box-shadow: 0 0 0 0 oklch(0.55 0.113 162 / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px oklch(0.55 0.113 162 / 0);
+  }
+}
+
+/* ==========================================================================
+   1. PAGE TRANSITIONS (View Transitions API & Navigation Morphing)
+   ========================================================================== */
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: pageFadeOut 0.22s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(root) {
+  animation: pageFadeIn 0.3s cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+@keyframes pageFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   2. SCROLL TRANSITIONS & SCROLL-DRIVEN ANIMATIONS
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Top Scroll / Reading Progress Indicator */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-info), var(--color-positive));
+  z-index: 100;
+  transform-origin: 0% 50%;
+  transform: scaleX(0);
+}
+
+@supports (animation-timeline: scroll()) {
+  @keyframes growProgress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .scroll-progress-bar {
+    animation: growProgress auto linear;
+    animation-timeline: scroll();
+  }
+}
+
+/* Scroll-Driven Element Reveal Effects (Progressive Enhancement) */
+@keyframes scrollRevealFade {
+  from {
+    opacity: 0.2;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@supports ((animation-timeline: view()) and (animation-range: entry)) {
+  .scroll-reveal {
+    animation: scrollRevealFade linear backwards;
+    animation-timeline: view();
+    animation-range: entry 10% entry 85%;
+  }
+
+  .scroll-reveal-fast {
+    animation: scrollRevealFade linear backwards;
+    animation-timeline: view();
+    animation-range: entry 5% entry 60%;
+  }
+}
+
+/* Universal Fallback & Intersection Observer Reveal class */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Interactive Card & Panel Hover Lifts */
+.card-hover-lift {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s ease;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-3px) scale(1.002);
+  box-shadow: var(--shadow-lift);
+}
+
+/* Respect user accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, ::before, ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

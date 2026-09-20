@@ -11,15 +11,14 @@ export const Route = createFileRoute("/_authenticated")({
       // ignore error and check local fallback
     }
 
-    const localUser = typeof window !== "undefined" ? localStorage.getItem("moneylens_user") : null;
+    const localUser =
+      typeof window !== "undefined"
+        ? localStorage.getItem("monexa_user") || localStorage.getItem("moneylens_user")
+        : null;
     if (!localUser) {
-      // Auto-initialize demo session if landing directly or redirect to login
-      if (typeof window !== "undefined") {
-        localStorage.setItem("moneylens_user", JSON.stringify({ email: "demo@moneylens.com", name: "Money Lens User" }));
-        return;
-      }
       throw redirect({ to: "/login", search: { next: location.href } });
     }
+
   },
   component: () => <Outlet />,
 });

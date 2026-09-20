@@ -268,23 +268,26 @@ class IntentService:
 
         # -------------------------------------------------------------
         # 4. GOAL_ANALYSIS
-        # Forward goal tracking ("I want to save 5 lakh in 1 year", "Can I reach X in Y months")
+        # Forward goal tracking ("I want to save 5 lakh in 1 year", "add a goal of saving 10000 in 2 months")
         # -------------------------------------------------------------
         goal_patterns = [
-            r"\bi\s*(want|need|plan|aim)\s*to\s*save\b",
-            r"\bcan\s*i\s*(reach|achieve|save|hit)\b.*\b(in\s*\d+\s*(months?|years?)|by\b)",
-            r"\bgoal\s*(for|to|tracking)\b",
-            r"\btarget\s*(of|amount|corpus)\b",
-            r"\baccumulate\b"
+            r"\b(add|create|set|make|start|track|new)\b.*\bgoal\b",
+            r"\bgoal\b",
+            r"\bi\s*(want|need|plan|aim|wish)\s*to\s*save\b",
+            r"\bcan\s*i\s*(reach|achieve|save|hit)\b",
+            r"\bsav(e|ing)\s*(for|to|of|towards|\d+)\b",
+            r"\btarget\s*(of|amount|corpus|for)\b",
+            r"\baccumulate\b",
         ]
         if any(re.search(p, lower) for p in goal_patterns):
+            resolved_title = item.title() if item else (f"Savings Goal (₹{amount:,.0f})" if amount else "Savings Goal")
             return ParsedFinancialIntent(
                 intent=MoneyLensIntent.GOAL_ANALYSIS,
                 raw_query=q,
                 amount=amount,
                 timeline_months=timeline or 12,
                 item=item,
-                goal_title=item or (f"Save ₹{amount:,.0f}" if amount else "Savings Milestone"),
+                goal_title=resolved_title,
                 confidence_score=0.95,
                 extracted_entities={"target_amount": amount, "target_months": timeline or 12}
             )
@@ -323,6 +326,9 @@ class IntentService:
         return ParsedFinancialIntent(
             intent=MoneyLensIntent.CLARIFICATION_NEEDED,
             raw_query=q,
+            amount=amount,
+            timeline_months=timeline,
+            item=item,
             is_ambiguous=True,
             confidence_score=0.50,
             clarification_question="Could you specify what you'd like to simulate? For example: 'I want to buy a 6 lakh car' or 'How much to save monthly for ₹5 lakh in 1 year?'"

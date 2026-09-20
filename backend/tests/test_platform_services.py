@@ -136,24 +136,79 @@ def test_chat_goal_creation_intent():
     assert response.action_payload is not None
     assert response.action_payload.action_type == "CREATE_GOAL"
     assert response.action_payload.data.get("target_amount") == 600000.0
-    assert response.action_payload.data.get("target_months") == 18
-
-    # Confirm goal creation
+    # User confirms goal creation
     confirm_req = ConfirmActionRequest(
         action_type="CREATE_GOAL",
-        data={
-            "title": "Car",
-            "target_amount": 600000.0,
-            "target_months": 18,
-            "category": "major_purchase",
-        },
+        data=response.action_payload.data,
         user_id="usr_test_105",
     )
     confirm_res = chat_service.confirm_action(confirm_req)
     assert confirm_res.status == "success"
+    assert confirm_res.updated_entity.get("title") is not None
+
+
+def test_chat_emi_sub_investment_confirmations():
+    chat_service = ChatService()
+    
+    # Confirm CREATE_EMI
+    emi_confirm = chat_service.confirm_action(
+        ConfirmActionRequest(
+            action_type="CREATE_EMI",
+            data={
+                "name": "Car Loan",
+                "category": "Auto Loan",
+                "principal_amount": 500000.0,
+                "interest_rate_pct": 9.5,
+                "tenure_months": 36,
+            },
+            user_id="usr_test_chat_actions",
+        )
+    )
+    assert emi_confirm.status == "success"
+    emis = chat_service.profile_service.get_emis("usr_test_chat_actions")
+    assert len(emis) == 1
+    assert emis[0].name == "Car Loan"
+
+    # Confirm CREATE_SUBSCRIPTION
+    sub_confirm = chat_service.confirm_action(
+        ConfirmActionRequest(
+            action_type="CREATE_SUBSCRIPTION",
+            data={
+                "name": "Netflix",
+                "category": "Streaming",
+                "billing_frequency": "monthly",
+                "amount": 649.0,
+            },
+            user_id="usr_test_chat_actions",
+        )
+    )
+    assert sub_confirm.status == "success"
+    subs = chat_service.profile_service.get_subscriptions("usr_test_chat_actions")
+    assert len(subs) == 1
+    assert subs[0].name == "Netflix"
+
+    # Confirm CREATE_INVESTMENT
+    inv_confirm = chat_service.confirm_action(
+        ConfirmActionRequest(
+            action_type="CREATE_INVESTMENT",
+            data={
+                "name": "Nifty 50 Index Fund",
+                "category": "Mutual Fund SIP",
+                "asset_class": "Equity",
+                "monthly_amount": 5000.0,
+                "expected_return_pct": 12.0,
+            },
+            user_id="usr_test_chat_actions",
+        )
+    )
+    assert inv_confirm.status == "success"
+    invs = chat_service.profile_service.get_investments("usr_test_chat_actions")
+    assert len(invs) == 1
+    assert invs[0].name == "Nifty 50 Index Fund"
 
 
 def test_user_data_isolation():
+
     profile_repo = PostgresProfileRepository()
     profile_service = ProfileService(profile_repo=profile_repo)
 

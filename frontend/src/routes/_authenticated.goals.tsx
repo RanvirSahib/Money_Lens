@@ -1,24 +1,25 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
-import { Badge, PageHeader, Panel, Progress } from "@/components/dashboard/ui";
-import { currency, goalDetails as mockGoalDetails } from "@/lib/dashboard-data";
-import { useGoals, useCreateGoal, useDeleteGoal } from "@/hooks/use-money-lens";
-import { Plus, Trash2, X, Check } from "lucide-react";
+import { PageHeader, Panel } from "@/components/dashboard/ui";
+import { currency } from "@/lib/dashboard-data";
+import { useGoals, useCreateGoal, useDeleteGoal, useProfile } from "@/hooks/use-money-lens";
+import { Plus, Trash2, X, Check, Target, Sparkles, AlertCircle, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/goals")({
   head: () => ({
     meta: [
-      { title: "Goals — Money Lens" },
+      { title: "Financial Goals & Target Planning — Monexa" },
       {
         name: "description",
         content:
-          "Track every savings goal: progress, monthly contribution, projected completion date and what would speed it up.",
+          "Track and analyze every savings goal: deterministic contribution timelines, required sinking funds, and reachability.",
       },
-      { property: "og:title", content: "Goals — Money Lens" },
+      { property: "og:title", content: "Financial Goals — Monexa" },
       {
         property: "og:description",
-        content: "Progress, contributions and projected dates for each savings goal.",
+        content: "Track target dates, monthly allocations, and reachability across personal financial goals.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -27,50 +28,51 @@ export const Route = createFileRoute("/_authenticated/goals")({
   component: GoalsPage,
 });
 
+
+function maxVal(a: number, b: number) {
+  return a > b ? a : b;
+}
+
 function GoalsPage() {
-  const { data: liveGoals } = useGoals();
+  const { data: liveGoals = [] } = useGoals();
+  const { data: profile } = useProfile();
   const createGoalMutation = useCreateGoal();
   const deleteGoalMutation = useDeleteGoal();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [targetAmount, setTargetAmount] = useState(500000);
-  const [targetMonths, setTargetMonths] = useState(12);
+  const [targetAmount, setTargetAmount] = useState<number>(300000);
+  const [targetMonths, setTargetMonths] = useState<number>(12);
+  const [initialSavings, setInitialSavings] = useState<number>(0);
+  const [category, setCategory] = useState("purchase");
 
-  const displayGoals = liveGoals && liveGoals.length > 0
-    ? liveGoals.map((g) => {
-        const curr = g.current_savings_allocated || 0;
-        const tgt = g.target_amount || 100000;
-        const mos = g.target_months || 12;
-        const monthlyContrib = Math.round((tgt - curr) / maxVal(1, mos));
-        const pct = Math.round((curr / tgt) * 100);
-        return {
-          id: g.id,
-          name: g.title,
-          current: curr,
-          target: tgt,
-          monthly: monthlyContrib,
-          monthsLeft: mos,
-          state: pct >= 50 ? ("positive" as const) : pct >= 20 ? ("info" as const) : ("attention" as const),
-          note: `Required sinking fund allocation: ${currency(monthlyContrib)}/month over ${mos} months.`,
-          isLive: true,
-        };
-      })
-    : mockGoalDetails.map((g) => ({
-        id: g.name,
-        name: g.name,
-        current: g.current,
-        target: g.target,
-        monthly: g.monthly,
-        monthsLeft: Math.ceil((g.target - g.current) / g.monthly),
-        state: g.state,
-        note: g.note,
-        isLive: false,
-      }));
+  const monthlySurplus = profile?.monthly_surplus || 0;
 
-  const saved = displayGoals.reduce((s, g) => s + g.current, 0);
-  const target = displayGoals.reduce((s, g) => s + g.target, 0);
-  const monthly = displayGoals.reduce((s, g) => s + g.monthly, 0);
+  const displayGoals = liveGoals.map((g) => {
+    const curr = g.current_savings_allocated || 0;
+    const tgt = g.target_amount || 100000;
+    const mos = g.target_months || 12;
+    const remaining = maxVal(0, tgt - curr);
+    const requiredMonthly = Math.round(remaining / maxVal(1, mos));
+    const pct = tgt > 0 ? Math.min(100, Math.round((curr / tgt) * 100)) : 0;
+    const isReachableWithSurplus = monthlySurplus >= requiredMonthly;
+
+    return {
+      id: g.id,
+      title: g.title,
+      current: curr,
+      target: tgt,
+      requiredMonthly,
+      monthsLeft: mos,
+      pct,
+      isReachableWithSurplus,
+      category: g.category || "custom",
+    };
+  });
+
+  const totalSaved = displayGoals.reduce((s, g) => s + g.current, 0);
+  const totalTarget = displayGoals.reduce((s, g) => s + g.target, 0);
+  const totalMonthlyRequired = displayGoals.reduce((s, g) => s + g.requiredMonthly, 0);
 
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,40 +81,80 @@ function GoalsPage() {
       title: title.trim(),
       target_amount: Number(targetAmount),
       target_months: Number(targetMonths),
-      current_savings_allocated: 0,
-      category: "major_purchase",
+      current_savings_allocated: Number(initialSavings),
+      category,
     });
     setTitle("");
+    setInitialSavings(0);
     setIsModalOpen(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to remove this financial goal?")) {
+      await deleteGoalMutation.mutateAsync(id);
+    }
   };
 
   return (
     <AppShell>
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4">
         <PageHeader
-          eyebrow={`${displayGoals.length} active goals`}
-          title="What you're saving toward."
-          description={`You've put aside ${currency(saved)} of ${currency(target)} and are adding ${currency(monthly)} every month.`}
+          eyebrow={`${displayGoals.length} Configured Goals`}
+          title="Financial Goal Planning"
+          description={
+            displayGoals.length > 0
+              ? `You have allocated ${currency(totalSaved)} toward ${currency(totalTarget)} in target goals, requiring ${currency(totalMonthlyRequired)} / month.`
+              : "Set target amounts and timelines. Money Lens calculates the exact required monthly savings pace."
+          }
         />
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 self-start sm:self-auto rounded-lg bg-primary text-primary-foreground px-3.5 py-1.5 text-xs font-medium hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-2 self-start sm:self-auto rounded-lg bg-primary text-primary-foreground px-4 py-2 text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
         >
           <Plus className="h-4 w-4" />
-          <span>Add Goal</span>
+          <span>Add Financial Goal</span>
         </button>
       </div>
 
-      {/* Add Goal Modal */}
+      {/* KPI Overview */}
+      <section className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="panel p-5">
+          <p className="text-xs uppercase tracking-wide text-subtle-foreground">Total Goal Reserves</p>
+          <p className="numeric mt-2.5 text-2xl font-bold text-foreground">{currency(totalSaved)}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {totalTarget > 0 ? `${Math.round((totalSaved / totalTarget) * 100)}% of total targets` : "No targets set"}
+          </p>
+        </div>
+
+        <div className="panel p-5">
+          <p className="text-xs uppercase tracking-wide text-subtle-foreground">Combined Target Capital</p>
+          <p className="numeric mt-2.5 text-2xl font-bold text-foreground">{currency(totalTarget)}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Across {displayGoals.length} active goals</p>
+        </div>
+
+        <div className="panel p-5">
+          <p className="text-xs uppercase tracking-wide text-subtle-foreground">Monthly Required Sinking Fund</p>
+          <p className={cn("numeric mt-2.5 text-2xl font-bold", monthlySurplus >= totalMonthlyRequired ? "text-positive" : "text-attention")}>
+            {currency(totalMonthlyRequired)} / mo
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {monthlySurplus >= totalMonthlyRequired
+              ? `🟢 Covered by surplus (${currency(monthlySurplus)}/mo)`
+              : `⚠️ Exceeds surplus by ${currency(totalMonthlyRequired - monthlySurplus)}/mo`}
+          </p>
+        </div>
+      </section>
+
+      {/* Create Goal Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/20 backdrop-blur-xs">
           <div className="bg-surface-elevated rounded-2xl border border-border p-6 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg">Create New Savings Goal</h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground cursor-pointer"
-              >
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                <h3 className="font-display text-lg">Create New Goal</h3>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -122,57 +164,67 @@ function GoalsPage() {
                 <label className="text-xs text-subtle-foreground uppercase tracking-wide">Goal Name</label>
                 <input
                   type="text"
-                  required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Electric Vehicle Down Payment"
-                  className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium focus:outline-none focus:border-primary"
+                  placeholder="e.g. New Electric Vehicle, Emergency Fund, Home Downpayment"
+                  required
+                  className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-subtle-foreground uppercase tracking-wide">Target (₹)</label>
+                  <label className="text-xs text-subtle-foreground uppercase tracking-wide">Target Amount (₹)</label>
                   <input
                     type="number"
-                    required
-                    min={1000}
                     value={targetAmount}
                     onChange={(e) => setTargetAmount(Number(e.target.value))}
-                    className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium numeric focus:outline-none focus:border-primary"
+                    min={1000}
+                    required
+                    className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold numeric focus:outline-none focus:border-primary"
                   />
                 </div>
+
                 <div>
-                  <label className="text-xs text-subtle-foreground uppercase tracking-wide">Horizon (Months)</label>
+                  <label className="text-xs text-subtle-foreground uppercase tracking-wide">Timeline (Months)</label>
                   <input
                     type="number"
-                    required
-                    min={1}
                     value={targetMonths}
                     onChange={(e) => setTargetMonths(Number(e.target.value))}
-                    className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium numeric focus:outline-none focus:border-primary"
+                    min={1}
+                    max={240}
+                    required
+                    className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold numeric focus:outline-none focus:border-primary"
                   />
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-surface-muted border border-border text-xs text-muted-foreground">
-                Monthly required saving: <span className="numeric font-semibold text-foreground">{currency(Math.round(targetAmount / Math.max(1, targetMonths)))}/mo</span>
+              <div>
+                <label className="text-xs text-subtle-foreground uppercase tracking-wide">Initial Allocated Savings (₹)</label>
+                <input
+                  type="number"
+                  value={initialSavings}
+                  onChange={(e) => setInitialSavings(Number(e.target.value))}
+                  min={0}
+                  className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold numeric focus:outline-none focus:border-primary"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-border px-3.5 py-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium rounded-lg border border-border hover:bg-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createGoalMutation.isPending}
-                  className="rounded-lg bg-primary text-primary-foreground px-4 py-1.5 text-xs font-medium hover:opacity-90 cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
                 >
-                  {createGoalMutation.isPending ? "Adding..." : "Confirm Goal"}
+                  <Check className="h-3.5 w-3.5" />
+                  <span>{createGoalMutation.isPending ? "Creating..." : "Save Goal"}</span>
                 </button>
               </div>
             </form>
@@ -180,88 +232,68 @@ function GoalsPage() {
         </div>
       )}
 
-      <section className="mt-10 grid gap-4 sm:grid-cols-3">
-        {[
-          { label: "Saved so far", value: currency(saved) },
-          { label: "Combined target", value: currency(target) },
-          { label: "Monthly contribution", value: currency(monthly) },
-        ].map((stat) => (
-          <div key={stat.label} className="panel p-5">
-            <p className="text-xs uppercase tracking-wide text-subtle-foreground">{stat.label}</p>
-            <p className="numeric mt-3 text-2xl font-semibold">{stat.value}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="mt-6 space-y-4">
-        {displayGoals.map((goal) => {
-          const pct = Math.round((goal.current / goal.target) * 100);
-          return (
-            <div key={goal.id} className="panel p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* Goals List */}
+      <section className="mt-8 space-y-4">
+        {displayGoals.length > 0 ? (
+          displayGoals.map((goal) => (
+            <div key={goal.id} className="panel p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-display text-2xl">{goal.name}</h2>
-                  <p className="mt-1 text-xs text-subtle-foreground">
-                    {currency(goal.monthly)} a month · {goal.monthsLeft} months horizon
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-semibold text-foreground">{goal.title}</h3>
+                    <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider", goal.isReachableWithSurplus ? "bg-positive-soft text-positive" : "bg-attention-soft text-attention")}>
+                      {goal.isReachableWithSurplus ? "Reachable Pace" : "Surplus Stretch"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Required allocation: <span className="font-semibold text-foreground">{currency(goal.requiredMonthly)} / month</span> over {goal.monthsLeft} months
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge tone={goal.state}>
-                    {goal.state === "positive"
-                      ? "On track"
-                      : goal.state === "info"
-                        ? "Steady"
-                        : "Behind plan"}
-                  </Badge>
-                  {goal.isLive && (
-                    <button
-                      onClick={() => deleteGoalMutation.mutate(goal.id)}
-                      className="p-1.5 text-subtle-foreground hover:text-risk rounded-md transition-colors cursor-pointer"
-                      title="Remove Goal"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+
+                <div className="flex items-center gap-4 self-end sm:self-auto">
+                  <div className="text-right">
+                    <p className="numeric text-lg font-bold text-foreground">
+                      {currency(goal.current)} <span className="text-xs font-normal text-subtle-foreground">/ {currency(goal.target)}</span>
+                    </p>
+                    <span className="text-xs text-subtle-foreground font-mono">{goal.pct}% achieved</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleDelete(goal.id)}
+                    className="p-2 rounded-lg text-muted-foreground hover:text-risk hover:bg-risk-soft transition-colors cursor-pointer"
+                    title="Delete Goal"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
-              <div className="mt-6 flex items-baseline justify-between text-sm">
-                <span className="numeric font-medium">{currency(goal.current)}</span>
-                <span className="numeric text-muted-foreground">
-                  {pct}% of {currency(goal.target)}
-                </span>
-              </div>
-              <div className="mt-2">
-                <Progress value={pct} tone={goal.state} />
-              </div>
-
-              <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{goal.note}</p>
-
-              <div className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-3">
-                {[
-                  { label: "Remaining", value: currency(Math.max(0, goal.target - goal.current)) },
-                  {
-                    label: "Months left",
-                    value: `${goal.monthsLeft}`,
-                  },
-                  { label: "Required Monthly", value: currency(goal.monthly) },
-                ].map((cell) => (
-                  <div key={cell.label}>
-                    <p className="text-xs uppercase tracking-wide text-subtle-foreground">
-                      {cell.label}
-                    </p>
-                    <p className="numeric mt-1.5 text-sm font-medium">{cell.value}</p>
-                  </div>
-                ))}
+              {/* Progress bar */}
+              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
+                <div
+                  className={cn("h-full rounded-full transition-all", goal.pct >= 100 ? "bg-positive" : goal.pct >= 50 ? "bg-info" : "bg-attention")}
+                  style={{ width: `${goal.pct}%` }}
+                />
               </div>
             </div>
-          );
-        })}
+          ))
+        ) : (
+          <div className="panel p-12 text-center border-dashed border-border">
+            <Target className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-foreground">No Financial Goals Configured</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+              Start by creating your first milestone (e.g. 6-Month Emergency Fund, Vehicle, House Downpayment, or Education).
+            </p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-xs font-semibold hover:opacity-90 transition-opacity"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Create First Goal</span>
+            </button>
+          </div>
+        )}
       </section>
     </AppShell>
   );
-}
-
-function maxVal(a: number, b: number) {
-  return a > b ? a : b;
 }

@@ -97,14 +97,46 @@ def init_db() -> None:
         email VARCHAR(255) UNIQUE NOT NULL,
         username VARCHAR(64) UNIQUE,
         name VARCHAR(255) NOT NULL,
+        mobile VARCHAR(32),
         password_hash VARCHAR(255) NOT NULL,
-        monthly_income NUMERIC(14, 2) DEFAULT 85000.0,
-        monthly_expenses NUMERIC(14, 2) DEFAULT 35000.0,
-        current_savings NUMERIC(14, 2) DEFAULT 150000.0,
-        health_score INTEGER DEFAULT 88,
+        monthly_income NUMERIC(14, 2) DEFAULT 0.0,
+        monthly_expenses NUMERIC(14, 2) DEFAULT 0.0,
+        current_savings NUMERIC(14, 2) DEFAULT 0.0,
+        health_score INTEGER DEFAULT 50,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS user_profiles (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL DEFAULT 'User',
+        monthly_income NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        essential_expenses NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        discretionary_expenses NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        current_savings NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        monthly_investments NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        active_emis NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        active_loans NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        other_recurring_expenses NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
+
+    CREATE TABLE IF NOT EXISTS statement_summaries (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        filename VARCHAR(255),
+        total_income NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        total_debits NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        transaction_count INTEGER NOT NULL DEFAULT 0,
+        save_raw BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_statement_summaries_user_id ON statement_summaries(user_id);
 
     CREATE TABLE IF NOT EXISTS email_otps (
         id VARCHAR(64) PRIMARY KEY,
@@ -118,6 +150,58 @@ def init_db() -> None:
 
     CREATE INDEX IF NOT EXISTS idx_email_otps_email ON email_otps(email);
     CREATE INDEX IF NOT EXISTS idx_email_otps_code ON email_otps(email, otp_code);
+
+    CREATE TABLE IF NOT EXISTS user_emis (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        category VARCHAR(128) NOT NULL DEFAULT 'Personal Loan',
+        principal_amount NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        interest_rate_pct NUMERIC(6, 2) NOT NULL DEFAULT 0.0,
+        tenure_months INTEGER NOT NULL DEFAULT 12,
+        remaining_months INTEGER NOT NULL DEFAULT 12,
+        monthly_emi NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        total_interest_payable NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        start_date DATE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_emis_user_id ON user_emis(user_id);
+
+    CREATE TABLE IF NOT EXISTS user_subscriptions (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        category VARCHAR(128) NOT NULL DEFAULT 'Streaming',
+        billing_frequency VARCHAR(32) NOT NULL DEFAULT 'monthly',
+        amount NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        monthly_equivalent NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        annual_cost NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        renewal_date DATE,
+        status VARCHAR(32) NOT NULL DEFAULT 'active',
+        auto_renew BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON user_subscriptions(user_id);
+
+    CREATE TABLE IF NOT EXISTS user_investments (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        category VARCHAR(128) NOT NULL DEFAULT 'Mutual Fund SIP',
+        asset_class VARCHAR(64) NOT NULL DEFAULT 'Equity',
+        monthly_amount NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
+        expected_return_pct NUMERIC(6, 2) NOT NULL DEFAULT 12.0,
+        sip_date INTEGER,
+        status VARCHAR(32) NOT NULL DEFAULT 'active',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_investments_user_id ON user_investments(user_id);
     """
     logger.info("Initializing PostgreSQL schema tables on RDS/PostgreSQL...")
     with get_db_connection() as conn:
@@ -125,8 +209,14 @@ def init_db() -> None:
             cur.execute(ddl)
             # Safe column migration for existing installations
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(64) UNIQUE;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS mobile VARCHAR(32);")
+            cur.execute("ALTER TABLE goals ADD COLUMN IF NOT EXISTS user_id VARCHAR(64);")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_user_emis_user_id ON user_emis(user_id);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON user_subscriptions(user_id);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_user_investments_user_id ON user_investments(user_id);")
     logger.info("PostgreSQL schema tables verified and ready.")
 
 

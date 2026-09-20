@@ -15,6 +15,7 @@ Extracts and confirms actionable intents:
 
 import uuid
 import re
+import math
 from typing import Optional, Dict, Any, List
 from app.services.intent_service import IntentService
 from app.services.profile_service import ProfileService
@@ -26,8 +27,17 @@ from app.schemas.chat import (
     ConfirmActionRequest,
     ConfirmActionResponse,
 )
-from app.schemas.profile import FinancialProfileUpdate
+from app.schemas.profile import (
+    FinancialProfileUpdate,
+    UserEMICreate,
+    UserSubscriptionCreate,
+    UserInvestmentCreate,
+)
 from app.schemas.goals import GoalCreateRequest
+
+
+# Module-level storage for pending chat actions across turns
+_SESSION_PENDING_ACTIONS: Dict[str, Dict[str, Any]] = {}
 
 
 class ChatService:
@@ -58,17 +68,85 @@ class ChatService:
     ) -> ChatMessageResponse:
         session_id = session_id or f"sess_{uuid.uuid4().hex[:8]}"
         msg_id = f"msg_{uuid.uuid4().hex[:8]}"
-        msg_lower = message.lower()
+        msg_lower = message.lower().strip()
 
         profile = self.profile_service.get_profile(user_id)
         current_goals = self.goal_service.get_saved_goals()
         spending_data = self.spending_service.get_spending_insights(user_id)
 
         # ----------------------------------------------------------------
-        # 1. SALARY / INCOME UPDATE
-        # Triggers: "salary", "income", "earning", "ctc", "in hand"
+        # 0. NATURAL LANGUAGE CONFIRMATION & SESSION PENDING ACTION RESOLUTION
+        # Triggers: "yes", "confirm", "apply", "do it", "sure", "ok", "proceed",
+        # "go ahead", "save it", "update it", "please do", "add this", "yes, update savings", etc.
         # ----------------------------------------------------------------
-        income_keywords = ["salary", "income", "earn", "ctc", "in hand", "inhand", "take home", "package"]
+        confirmation_keywords = [
+            "yes", "confirm", "apply", "do it", "sure", "ok", "okay", "proceed",
+            "go ahead", "save it", "update it", "please do", "add this", "yes, update",
+            "yes update", "yes, please", "yes please", "yes update savings",
+            "yes, update savings", "yes update income", "yes, update income",
+            "yes update my income", "yes, update my income", "yes update expenses",
+            "yes, update expenses", "yes update emi", "yes, update emi",
+            "yes update investments", "yes, update investments", "add this goal",
+            "create this goal", "save goal", "add goal", "yes add goal",
+            "yes, update savings balance", "yes update savings balance",
+            "yes, update liquid cash", "yes update liquid cash"
+        ]
+        is_confirm_intent = any(kw == msg_lower or msg_lower.startswith(kw) for kw in confirmation_keywords) or (
+            bool(re.match(r"^(yes|confirm|apply|sure|ok|okay|proceed|save|update|add)\b", msg_lower))
+            and not any(char.isdigit() for char in message)
+        )
+
+        if is_confirm_intent:
+            pending = _SESSION_PENDING_ACTIONS.pop(session_id, None) or _SESSION_PENDING_ACTIONS.pop(user_id, None)
+            if pending:
+                confirm_req = ConfirmActionRequest(
+                    action_type=pending["action_type"],
+                    data=pending["data"],
+                    user_id=user_id,
+                )
+                confirm_res = self.confirm_action(confirm_req)
+                return ChatMessageResponse(
+                    message_id=msg_id,
+                    session_id=session_id,
+                    reply=f"✅ {confirm_res.message} Your profile parameters, net worth calculations, and Overview dashboard have been recalibrated in real-time.",
+                    action_payload=PendingActionPayload(
+                        action_type=pending["action_type"],
+                        title=pending.get("title", "Action Confirmed"),
+                        description=pending.get("description", ""),
+                        data=pending["data"],
+                        confirmed=True,
+                    ),
+                    evidence=confirm_res.message,
+                    relevant_metrics={"confirmed": True, "action_type": pending["action_type"]},
+                    suggested_followups=[
+                        "What is my monthly surplus?",
+                        "What is my emergency fund runway?",
+                        "Simulate a purchase",
+                        "View spending breakdown"
+                    ],
+                )
+
+        # Natural language cancellation
+        cancellation_keywords = ["cancel", "no", "don't update", "dont update", "keep current", "discard", "nevermind", "stop", "no thanks"]
+        if any(kw == msg_lower or msg_lower.startswith(kw) for kw in cancellation_keywords) and not any(char.isdigit() for char in message):
+            _SESSION_PENDING_ACTIONS.pop(session_id, None)
+            _SESSION_PENDING_ACTIONS.pop(user_id, None)
+            return ChatMessageResponse(
+                message_id=msg_id,
+                session_id=session_id,
+                reply="Action cancelled. Your existing profile parameters and financial metrics remain unchanged.",
+                suggested_followups=["What is my monthly surplus?", "Simulate a purchase", "Break down my spending"],
+            )
+
+        # ----------------------------------------------------------------
+        # 1. SALARY / INCOME UPDATE
+        # Triggers: "salary", "income", "earning", "earnings", "ctc", "in hand", "take home", "package"
+        # ----------------------------------------------------------------
+        income_keywords = [
+            "salary", "income", "earn", "earning", "earnings", "ctc",
+            "in hand", "inhand", "take home", "takehome", "package",
+            "monthly pay", "paycheck", "wage", "wages"
+        ]
         if any(kw in msg_lower for kw in income_keywords):
             amount_val = self._parse_amount_from_message(message)
             if amount_val:
@@ -78,6 +156,13 @@ class ChatService:
                     description=f"Update reported monthly income from ₹{profile.monthly_income:,.0f} to ₹{amount_val:,.0f}",
                     data={"monthly_income": amount_val, "field": "Monthly Income"},
                 )
+                _SESSION_PENDING_ACTIONS[session_id] = {
+                    "action_type": action.action_type,
+                    "title": action.title,
+                    "description": action.description,
+                    "data": action.data,
+                }
+                _SESSION_PENDING_ACTIONS[user_id] = _SESSION_PENDING_ACTIONS[session_id]
                 new_surplus = amount_val - profile.total_monthly_expenses
                 return ChatMessageResponse(
                     message_id=msg_id,
@@ -108,11 +193,15 @@ class ChatService:
 
         # ----------------------------------------------------------------
         # 2. EXPENSE UPDATE
-        # Triggers: "expense", "spending" + update keyword
+        # Triggers: "expense", "expenses", "spending", "spend", "spends", "monthly outflow"
         # ----------------------------------------------------------------
-        expense_keywords = ["expense", "spending", "spend"]
-        update_keywords = ["update", "increased", "is now", "is", "changed to", "became", "my"]
-        if any(kw in msg_lower for kw in expense_keywords) and any(kw in msg_lower for kw in update_keywords):
+        expense_keywords = [
+            "expense", "expenses", "spending", "spend", "spends",
+            "monthly outflow", "monthly outflows", "living cost", "living expense",
+            "living expenses", "bills", "monthly spend"
+        ]
+        update_keywords = ["update", "increased", "is now", "is", "changed to", "became", "my", "to", "set", "make"]
+        if any(kw in msg_lower for kw in expense_keywords) and (any(kw in msg_lower for kw in update_keywords) or any(c.isdigit() for c in message)):
             amount_val = self._parse_amount_from_message(message)
             if amount_val:
                 essential_share = round(amount_val * 0.6, 2)
@@ -123,6 +212,13 @@ class ChatService:
                     description=f"Update total monthly expenses to ₹{amount_val:,.0f} (essential: ₹{essential_share:,.0f}, discretionary: ₹{disc_share:,.0f})",
                     data={"essential_expenses": essential_share, "discretionary_expenses": disc_share, "field": "Monthly Expenses"},
                 )
+                _SESSION_PENDING_ACTIONS[session_id] = {
+                    "action_type": action.action_type,
+                    "title": action.title,
+                    "description": action.description,
+                    "data": action.data,
+                }
+                _SESSION_PENDING_ACTIONS[user_id] = _SESSION_PENDING_ACTIONS[session_id]
                 new_surplus = profile.monthly_income - amount_val
                 return ChatMessageResponse(
                     message_id=msg_id,
@@ -139,11 +235,17 @@ class ChatService:
                 )
 
         # ----------------------------------------------------------------
-        # 3. SAVINGS / BALANCE UPDATE
-        # Triggers: "savings", "saved", "balance", "emergency fund", "have in bank"
+        # 3. SAVINGS / LIQUID CASH / BALANCE UPDATE
+        # Triggers: "savings", "saved", "liquid cash", "liquid money", "cash on hand", "emergency fund", "bank balance", "balance"
         # ----------------------------------------------------------------
-        savings_keywords = ["savings", "saved", "have in bank", "balance", "emergency fund", "bank balance", "in account"]
-        if any(kw in msg_lower for kw in savings_keywords):
+        savings_keywords = [
+            "liquid cash", "liquid money", "liquid funds", "liquid savings", "cash on hand",
+            "cash in bank", "savings", "saved", "have in bank", "bank balance", "balance",
+            "emergency fund", "emergency buffer", "emergency savings", "in account", "cash",
+            "funds", "current savings", "liquid reserve", "liquid reserves", "cash reserve", "cash reserves"
+        ]
+        goal_keywords_check = ["goal", "target", "save for", "saving for", "saving in", "save in", "saving of", "save of", "want to buy", "plan to buy", "months", "years"]
+        if any(kw in msg_lower for kw in savings_keywords) and not any(kw in msg_lower for kw in goal_keywords_check):
             amount_val = self._parse_amount_from_message(message)
             if amount_val:
                 action = PendingActionPayload(
@@ -152,6 +254,13 @@ class ChatService:
                     description=f"Update liquid savings balance to ₹{amount_val:,.0f}",
                     data={"current_savings": amount_val, "field": "Current Savings"},
                 )
+                _SESSION_PENDING_ACTIONS[session_id] = {
+                    "action_type": action.action_type,
+                    "title": action.title,
+                    "description": action.description,
+                    "data": action.data,
+                }
+                _SESSION_PENDING_ACTIONS[user_id] = _SESSION_PENDING_ACTIONS[session_id]
                 runway = round(amount_val / max(1, profile.total_monthly_expenses), 1)
                 return ChatMessageResponse(
                     message_id=msg_id,
@@ -167,6 +276,7 @@ class ChatService:
                     suggested_followups=["Yes, update savings", "Cancel", "Is my emergency fund sufficient?"],
                 )
 
+
         # ----------------------------------------------------------------
         # 4. EMI UPDATE
         # Triggers: "emi", "loan emi", "monthly emi"
@@ -181,6 +291,13 @@ class ChatService:
                     description=f"Update active monthly EMI to ₹{amount_val:,.0f}",
                     data={"active_emis": amount_val, "field": "Active EMIs"},
                 )
+                _SESSION_PENDING_ACTIONS[session_id] = {
+                    "action_type": action.action_type,
+                    "title": action.title,
+                    "description": action.description,
+                    "data": action.data,
+                }
+                _SESSION_PENDING_ACTIONS[user_id] = _SESSION_PENDING_ACTIONS[session_id]
                 dti = round((amount_val / max(1, profile.monthly_income)) * 100, 1)
                 return ChatMessageResponse(
                     message_id=msg_id,
@@ -211,6 +328,13 @@ class ChatService:
                     description=f"Update monthly investments/SIP to ₹{amount_val:,.0f}",
                     data={"monthly_investments": amount_val, "field": "Monthly Investments"},
                 )
+                _SESSION_PENDING_ACTIONS[session_id] = {
+                    "action_type": action.action_type,
+                    "title": action.title,
+                    "description": action.description,
+                    "data": action.data,
+                }
+                _SESSION_PENDING_ACTIONS[user_id] = _SESSION_PENDING_ACTIONS[session_id]
                 savings_rate = round((amount_val / max(1, profile.monthly_income)) * 100, 1)
                 return ChatMessageResponse(
                     message_id=msg_id,
@@ -228,39 +352,98 @@ class ChatService:
                 )
 
         # ----------------------------------------------------------------
-        # 6. GOAL CREATION
+        # 6. PURCHASE AFFORDABILITY / TIME MACHINE INQUIRY
+        # Triggers: "afford", "can i buy", "what if i buy", "buying a", "purchase of"
         # ----------------------------------------------------------------
-        goal_triggers = ["goal", "want to buy", "saving for", "save for", "plan for", "target for", "purchase"]
+        purchase_triggers = ["afford", "can i buy", "what if i buy", "should i buy", "buying a", "purchase of", "cost of"]
+        if any(kw in msg_lower for kw in purchase_triggers):
+            parsed_intent = self.intent_service.parse_intent(message)
+            purchase_amt = parsed_intent.amount or self.intent_service.parse_indian_amount(message)
+            item_name = parsed_intent.item or "this item"
+
+            if purchase_amt and purchase_amt > 0:
+                post_savings = profile.current_savings - purchase_amt
+                monthly_surplus = profile.monthly_surplus
+                months_to_recover = int(math.ceil(purchase_amt / monthly_surplus)) if monthly_surplus > 0 else 999
+                new_runway = round(max(0.0, post_savings) / max(1, profile.total_monthly_expenses), 1)
+
+                is_safe = post_savings >= (profile.total_monthly_expenses * 3) and monthly_surplus > 0
+
+                status_verdict = (
+                    f"🟢 Affordability Feasible: You have sufficient liquid reserves. "
+                    if is_safe
+                    else (
+                        f"🟡 Caution: This purchase depletes your emergency fund below the recommended 3-month threshold ({new_runway} months remaining). "
+                        if post_savings > 0
+                        else f"🔴 High Risk: This upfront cost exceeds your available liquid savings by ₹{abs(post_savings):,.0f}. "
+                    )
+                )
+
+                reply_text = (
+                    f"{status_verdict}"
+                    f"Purchasing {item_name} for ₹{purchase_amt:,.0f} would reduce your savings from ₹{profile.current_savings:,.0f} to ₹{max(0, post_savings):,.0f}. "
+                    f"At your monthly surplus pace of ₹{monthly_surplus:,.0f}/mo, it will take approximately {months_to_recover} months to replenish this cash outflow."
+                )
+
+                return ChatMessageResponse(
+                    message_id=msg_id,
+                    session_id=session_id,
+                    reply=reply_text,
+                    evidence=f"Cost: ₹{purchase_amt:,.0f} | Post-Purchase Runway: {new_runway} months | Recovery: {months_to_recover} months",
+                    relevant_metrics={
+                        "purchase_amount": purchase_amt,
+                        "post_purchase_savings": post_savings,
+                        "runway_months": new_runway,
+                        "months_to_recover": months_to_recover
+                    },
+                    suggested_followups=[
+                        f"Simulate EMI option for ₹{purchase_amt:,.0f}",
+                        "View my current cash runway",
+                        "How to boost my surplus?"
+                    ]
+                )
+
+        # ----------------------------------------------------------------
+        # 7. GOAL CREATION & REVERSE GOAL SOLVING
+        # ----------------------------------------------------------------
+        goal_triggers = ["goal", "want to buy", "saving for", "save for", "plan for", "target for", "accumulate", "saving of", "save of", "target of"]
         if any(kw in msg_lower for kw in goal_triggers) and not any(kw in msg_lower for kw in ["delete", "remove", "cancel"]):
             parsed_intent = self.intent_service.parse_intent(message)
             target_amt = parsed_intent.amount or self.intent_service.parse_indian_amount(message) or 500000.0
-            timeline = parsed_intent.timeline_months or 12
-            goal_title = parsed_intent.item or "New Financial Goal"
+            timeline = self.intent_service.parse_timeline_months(message) or parsed_intent.timeline_months or 12
+            goal_title = parsed_intent.goal_title or (parsed_intent.item.title() if parsed_intent.item else f"Savings Goal (₹{target_amt:,.0f})")
             monthly_needed = round(target_amt / max(1, timeline), 0)
             feasible = monthly_needed <= profile.monthly_surplus
 
             action = PendingActionPayload(
                 action_type="CREATE_GOAL",
                 title="Goal Detected",
-                description=f"Create goal '{goal_title.title()}' for ₹{target_amt:,.0f} over {timeline} months.",
+                description=f"Create goal '{goal_title}' for ₹{target_amt:,.0f} over {timeline} months.",
                 data={
-                    "title": goal_title.title(),
+                    "title": goal_title,
                     "target_amount": target_amt,
                     "target_months": timeline,
                     "category": "major_purchase",
                     "monthly_contribution": monthly_needed,
                 },
             )
+            _SESSION_PENDING_ACTIONS[session_id] = {
+                "action_type": action.action_type,
+                "title": action.title,
+                "description": action.description,
+                "data": action.data,
+            }
+            _SESSION_PENDING_ACTIONS[user_id] = _SESSION_PENDING_ACTIONS[session_id]
             feasibility_note = (
                 f"Your current surplus of ₹{profile.monthly_surplus:,.0f}/month can cover this goal."
                 if feasible
-                else f"This requires ₹{monthly_needed:,.0f}/month but your current surplus is ₹{profile.monthly_surplus:,.0f}/month — you may need to reduce spending."
+                else f"This requires ₹{monthly_needed:,.0f}/month but your current surplus is ₹{profile.monthly_surplus:,.0f}/month — you may need to reduce spending or extend the timeline."
             )
             return ChatMessageResponse(
                 message_id=msg_id,
                 session_id=session_id,
                 reply=(
-                    f"I structured a goal for '{goal_title.title()}' — ₹{target_amt:,.0f} in {timeline} months "
+                    f"I structured a goal for '{goal_title}' — ₹{target_amt:,.0f} in {timeline} months "
                     f"(≈ ₹{monthly_needed:,.0f}/month required). {feasibility_note} "
                     "Would you like to add this as an active goal?"
                 ),
@@ -271,7 +454,7 @@ class ChatService:
             )
 
         # ----------------------------------------------------------------
-        # 7. FINANCIAL HEALTH / SURPLUS / SAVINGS RATE QUERY
+        # 8. FINANCIAL HEALTH / SURPLUS / SAVINGS RATE QUERY
         # ----------------------------------------------------------------
         health_triggers = ["surplus", "health", "how am i doing", "financial health", "score", "savings rate", "how much do i save"]
         if any(kw in msg_lower for kw in health_triggers):
@@ -299,7 +482,7 @@ class ChatService:
             )
 
         # ----------------------------------------------------------------
-        # 8. SPENDING BREAKDOWN QUERY
+        # 9. SPENDING BREAKDOWN QUERY
         # ----------------------------------------------------------------
         if any(kw in msg_lower for kw in ["spending", "category", "statement", "where did my money", "where is my money"]):
             return ChatMessageResponse(
@@ -317,7 +500,31 @@ class ChatService:
             )
 
         # ----------------------------------------------------------------
-        # 9. DEFAULT GROUNDED RESPONSE
+        # 10. NON-FINANCIAL OUT-OF-DOMAIN REFUSAL
+        # ----------------------------------------------------------------
+        non_financial_triggers = [
+            "joke", "poem", "python script", "code in", "recipe", "capital of", "weather in",
+            "write an essay", "translate", "who is", "who wrote", "song lyrics", "movie recommendation"
+        ]
+        if any(kw in msg_lower for kw in non_financial_triggers):
+            return ChatMessageResponse(
+                message_id=msg_id,
+                session_id=session_id,
+                reply=(
+                    "I am the Monexa Financial Intelligence Assistant. I specialize exclusively in your personal finances, cash flows, EMI commitments, goal feasibility, and statement observations. Please ask me any question related to your money or profile."
+                ),
+
+                evidence="Out-of-scope domain query filter applied.",
+                suggested_followups=[
+                    "What is my monthly surplus?",
+                    "Can I afford a ₹50,000 purchase?",
+                    "Create a goal for ₹3 lakh",
+                    "Update my salary"
+                ]
+            )
+
+        # ----------------------------------------------------------------
+        # 11. DEFAULT GROUNDED RESPONSE
         # ----------------------------------------------------------------
         has_data = profile.monthly_income > 0
 
@@ -381,8 +588,61 @@ class ChatService:
                 updated_entity=saved_goal.model_dump(),
             )
 
+        elif request.action_type == "CREATE_EMI":
+            emi_data = request.data
+            create_req = UserEMICreate(
+                name=emi_data.get("name", "New Loan EMI"),
+                category=emi_data.get("category", "Personal Loan"),
+                principal_amount=float(emi_data.get("principal_amount", 100000.0)),
+                interest_rate_pct=float(emi_data.get("interest_rate_pct", 10.0)),
+                tenure_months=int(emi_data.get("tenure_months", 12)),
+                remaining_months=int(emi_data.get("remaining_months", emi_data.get("tenure_months", 12))),
+                monthly_emi=float(emi_data.get("monthly_emi", 0.0)) if emi_data.get("monthly_emi") else None,
+            )
+            saved_emi = self.profile_service.create_emi(user_id, create_req)
+            return ConfirmActionResponse(
+                status="success",
+                message=f"EMI '{saved_emi.name}' (₹{saved_emi.monthly_emi:,.0f}/mo) successfully added and profile recalibrated.",
+                updated_entity=saved_emi.model_dump(),
+            )
+
+        elif request.action_type == "CREATE_SUBSCRIPTION":
+            sub_data = request.data
+            create_req = UserSubscriptionCreate(
+                name=sub_data.get("name", "New Subscription"),
+                category=sub_data.get("category", "Streaming"),
+                billing_frequency=sub_data.get("billing_frequency", "monthly"),
+                amount=float(sub_data.get("amount", 500.0)),
+                status="active",
+                auto_renew=True,
+            )
+            saved_sub = self.profile_service.create_subscription(user_id, create_req)
+            return ConfirmActionResponse(
+                status="success",
+                message=f"Subscription '{saved_sub.name}' (₹{saved_sub.monthly_equivalent:,.0f}/mo) successfully added.",
+                updated_entity=saved_sub.model_dump(),
+            )
+
+        elif request.action_type == "CREATE_INVESTMENT":
+            inv_data = request.data
+            create_req = UserInvestmentCreate(
+                name=inv_data.get("name", "New SIP"),
+                category=inv_data.get("category", "Mutual Fund SIP"),
+                asset_class=inv_data.get("asset_class", "Equity"),
+                monthly_amount=float(inv_data.get("monthly_amount", 5000.0)),
+                expected_return_pct=float(inv_data.get("expected_return_pct", 12.0)),
+                status="active",
+            )
+            saved_inv = self.profile_service.create_investment(user_id, create_req)
+            return ConfirmActionResponse(
+                status="success",
+                message=f"Investment '{saved_inv.name}' (₹{saved_inv.monthly_amount:,.0f}/mo) successfully added and profile recalibrated.",
+                updated_entity=saved_inv.model_dump(),
+            )
+
         return ConfirmActionResponse(
             status="error",
             message="Unknown action type.",
             updated_entity={},
         )
+

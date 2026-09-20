@@ -19,6 +19,7 @@ import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated.goals'
 import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated.insights'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated.profile'
 import { Route as AuthenticatedSimulationsRouteImport } from './routes/_authenticated.simulations'
 import { Route as AuthenticatedSpendingRouteImport } from './routes/_authenticated.spending'
 
@@ -71,6 +72,11 @@ const AuthenticatedInsightsRoute = AuthenticatedInsightsRouteImport.update({
   path: '/insights',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedSimulationsRoute =
   AuthenticatedSimulationsRouteImport.update({
     id: '/simulations',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/goals': typeof AuthenticatedGoalsRoute
   '/insights': typeof AuthenticatedInsightsRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/simulations': typeof AuthenticatedSimulationsRoute
   '/spending': typeof AuthenticatedSpendingRoute
 }
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/goals': typeof AuthenticatedGoalsRoute
   '/insights': typeof AuthenticatedInsightsRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/simulations': typeof AuthenticatedSimulationsRoute
   '/spending': typeof AuthenticatedSpendingRoute
 }
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/goals': typeof AuthenticatedGoalsRoute
   '/_authenticated/insights': typeof AuthenticatedInsightsRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/simulations': typeof AuthenticatedSimulationsRoute
   '/_authenticated/spending': typeof AuthenticatedSpendingRoute
 }
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/goals'
     | '/insights'
+    | '/profile'
     | '/simulations'
     | '/spending'
   fileRoutesByTo: FileRoutesByTo
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/goals'
     | '/insights'
+    | '/profile'
     | '/simulations'
     | '/spending'
   id:
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/goals'
     | '/_authenticated/insights'
+    | '/_authenticated/profile'
     | '/_authenticated/simulations'
     | '/_authenticated/spending'
   fileRoutesById: FileRoutesById
@@ -248,6 +260,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInsightsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/simulations': {
       id: '/_authenticated/simulations'
       path: '/simulations'
@@ -270,6 +289,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
   AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSimulationsRoute: typeof AuthenticatedSimulationsRoute
   AuthenticatedSpendingRoute: typeof AuthenticatedSpendingRoute
 }
@@ -279,6 +299,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
   AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSimulationsRoute: AuthenticatedSimulationsRoute,
   AuthenticatedSpendingRoute: AuthenticatedSpendingRoute,
 }

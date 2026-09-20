@@ -7,6 +7,7 @@ from fastapi import APIRouter, status, HTTPException
 from app.schemas.auth import (
     UserRegisterRequest,
     UserLoginRequest,
+    ResetPasswordRequest,
     UserProfileUpdateRequest,
     UserResponse,
     AuthResponse,
@@ -142,6 +143,46 @@ def login_endpoint(payload: UserLoginRequest):
         user=user,
         token=token,
         message="Authentication successful."
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=AuthResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Reset user password using OTP verification code"
+)
+def reset_password_endpoint(payload: ResetPasswordRequest):
+    """Verifies OTP code and updates the user password in PostgreSQL."""
+    # 1. Verify OTP code
+    valid_otp = otp_service.verify_otp(payload.email, payload.otp_code)
+    if not valid_otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP verification code."
+        )
+
+    # 2. Check if user exists
+    user_record = user_repo.get_by_email(payload.email)
+    if not user_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No account found associated with email '{payload.email}'."
+        )
+
+    # 3. Update password
+    updated_user = user_repo.update_password(payload.email, payload.new_password)
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update password. Please try again."
+        )
+
+    token = f"ml_token_{updated_user.id}"
+    return AuthResponse(
+        user=updated_user,
+        token=token,
+        message="Password reset successfully. You are now signed in."
     )
 
 

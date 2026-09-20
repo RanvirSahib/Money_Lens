@@ -36,36 +36,40 @@ class OtpService:
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         smtp_user = os.getenv("SMTP_USERNAME")
         smtp_pass = os.getenv("SMTP_PASSWORD")
-        from_email = os.getenv("SMTP_FROM_EMAIL") or smtp_user or "ranvir.sahibadv88@gmail.com"
+        from_email = os.getenv("SMTP_FROM_EMAIL") or smtp_user or "monexa.ai410@gmail.com"
 
         if smtp_server and smtp_user and smtp_pass:
             try:
                 msg = MIMEMultipart("alternative")
-                msg["Subject"] = f"{otp_code} is your MoneyLens Verification Code"
-                msg["From"] = f"MoneyLens Security <{from_email}>"
+                msg["Subject"] = f"{otp_code} is your Monexa Verification Code"
+                msg["From"] = f"Monexa Security <{from_email}>"
                 msg["To"] = to_email
 
-                text_content = f"Your MoneyLens verification code is: {otp_code}\n\nThis code expires in 10 minutes."
+                text_content = f"Your Monexa verification code is: {otp_code}\n\nThis code expires in 10 minutes."
                 html_content = f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #030712; color: #f8fafc;">
-    <div style="max-width: 500px; margin: 0 auto; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="color: #38bdf8; font-size: 24px; margin: 0; font-weight: 800; letter-spacing: -0.5px;">MoneyLens</h1>
-            <p style="color: #94a3b8; font-size: 13px; margin-top: 4px;">AI-Powered Predictive Financial Platform</p>
+<body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #090d16; color: #f8fafc;">
+    <div style="max-width: 480px; margin: 0 auto; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+        <div style="text-align: center; margin-bottom: 28px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: linear-gradient(135deg, #10b981, #065f46); border-radius: 12px; margin-bottom: 12px;">
+                <span style="color: #ffffff; font-size: 22px; font-weight: 900;">M</span>
+            </div>
+            <h1 style="color: #ffffff; font-size: 24px; margin: 0; font-weight: 800; letter-spacing: -0.5px;">Monexa</h1>
+            <p style="color: #94a3b8; font-size: 13px; margin-top: 4px;">Predictive Financial Intelligence Platform</p>
         </div>
-        <div style="background: #1e293b; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-            <p style="color: #94a3b8; font-size: 14px; margin-top: 0; margin-bottom: 12px;">Your 6-digit {purpose.lower()} code is:</p>
-            <div style="font-family: monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #38bdf8; background: #0f172a; padding: 14px; border-radius: 8px; display: inline-block;">
+        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 24px;">
+            <p style="color: #cbd5e1; font-size: 14px; font-weight: 500; margin-top: 0; margin-bottom: 14px;">Your 6-digit {purpose.lower()} code is:</p>
+            <div style="font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #10b981; background: #090d16; padding: 16px 20px; border-radius: 10px; border: 1px solid #10b98133; display: inline-block;">
                 {otp_code}
             </div>
-            <p style="color: #64748b; font-size: 12px; margin-top: 12px; margin-bottom: 0;">⏱️ Valid for 10 minutes</p>
+            <p style="color: #94a3b8; font-size: 12px; margin-top: 14px; margin-bottom: 0;">⏱️ Valid for 10 minutes</p>
         </div>
-        <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center; margin: 0;">
-            If you did not request this verification code, you can safely ignore this email.
+        <p style="color: #64748b; font-size: 12px; line-height: 1.6; text-align: center; margin: 0;">
+            If you did not request this verification code, please ignore this email. Your Monexa account remains secure.
         </p>
     </div>
 </body>
@@ -82,6 +86,7 @@ class OtpService:
             except Exception as e:
                 logger.error(f"Failed to send OTP via SMTP: {e}")
                 raise e
+
 
     @classmethod
     def create_and_store_otp(cls, email: str, purpose: str = "auth") -> str:
