@@ -13,7 +13,7 @@ applications:
             - env
             - npm run build
       artifacts:
-        baseDirectory: out
+        baseDirectory: .output/public
         files:
           - '**/*'
       cache:
