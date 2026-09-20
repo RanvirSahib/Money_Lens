@@ -3,8 +3,11 @@
  * Connects the Lovable frontend directly to the existing Money Lens FastAPI backend (http://localhost:8000).
  */
 
-const API_BASE_URL = typeof window !== 'undefined' 
-  ? (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1')
+const isBrowser = typeof window !== 'undefined';
+const isLocalhost = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+const API_BASE_URL = isBrowser
+  ? (import.meta.env.VITE_API_BASE_URL || (isLocalhost ? 'http://localhost:8000/api/v1' : '/api/v1'))
   : 'http://localhost:8000/api/v1';
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
