@@ -25,10 +25,7 @@ export default defineConfig({
     define: {},
   },
   tanstackStart: {
-    // SPA mode: the app runs entirely in the browser with no SSR server.
-    // prerender uses defaultRenderHandler (buffered, not streaming) so the
-    // Amplify CodeBuild prerender client can consume the response reliably.
-    spa: { enabled: true, prerender: { enabled: false } },
+    prerender: { enabled: false },
     server: { entry: "server" },
   },
 });
