@@ -25,6 +25,7 @@ export default defineConfig({
     define: {},
   },
   tanstackStart: {
+    client: { entry: "main" },
     prerender: { enabled: false },
     server: { entry: "server" },
   },
