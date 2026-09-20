@@ -25,8 +25,11 @@ export default defineConfig({
     define: {},
   },
   tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
+    // SPA mode: the app runs entirely in the browser with no SSR server.
+    // This disables the window.$_TSR hydration contract that causes
+    // "Uncaught Error: Invariant failed" when deploying to static hosting
+    // (AWS Amplify S3/CloudFront) where no server renders the initial HTML.
+    spa: { enabled: true },
   },
 });
+
