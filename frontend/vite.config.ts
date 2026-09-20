@@ -26,10 +26,10 @@ export default defineConfig({
   },
   tanstackStart: {
     // SPA mode: the app runs entirely in the browser with no SSR server.
-    // This disables the window.$_TSR hydration contract that causes
-    // "Uncaught Error: Invariant failed" when deploying to static hosting
-    // (AWS Amplify S3/CloudFront) where no server renders the initial HTML.
-    spa: { enabled: true },
+    // prerender uses defaultRenderHandler (buffered, not streaming) so the
+    // Amplify CodeBuild prerender client can consume the response reliably.
+    spa: { enabled: true, prerender: { enabled: false } },
+    server: { entry: "server" },
   },
 });
 

@@ -1,6 +1,6 @@
-import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server";
+import { createStartHandler, defaultRenderHandler } from "@tanstack/react-start/server";
 
-const startHandler = createStartHandler(defaultStreamHandler);
+const startHandler = createStartHandler(defaultRenderHandler);
 
 export default {
   async fetch(request: Request) {
