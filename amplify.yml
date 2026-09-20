@@ -10,7 +10,7 @@ applications:
             - npm install --legacy-peer-deps
         build:
           commands:
-            - env
+            - export NITRO_PRESET=aws-amplify
             - npm run build
       artifacts:
         baseDirectory: .amplify-hosting
