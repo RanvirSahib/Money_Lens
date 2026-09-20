@@ -13,7 +13,7 @@ applications:
             - env
             - npm run build
       artifacts:
-        baseDirectory: .output/public
+        baseDirectory: .amplify-hosting
         files:
           - '**/*'
       cache:
