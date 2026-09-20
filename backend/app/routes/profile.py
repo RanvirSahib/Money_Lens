@@ -34,6 +34,12 @@ def get_user_profile(user_id: Optional[str] = Query(default="usr_demo_01")):
     return prof
 
 
+@router.get("/discrepancies", response_model=List[DiscrepancyComparison])
+def get_profile_discrepancies(user_id: Optional[str] = Query(default="usr_demo_01")):
+    """Compares user's reported financial profile with bank statement activity."""
+    return profile_service.check_discrepancies(user_id)
+
+
 @router.put("", response_model=FinancialProfileResponse)
 @router.patch("", response_model=FinancialProfileResponse)
 def update_user_profile(updates: FinancialProfileUpdate, user_id: Optional[str] = Query(default="usr_demo_01")):
