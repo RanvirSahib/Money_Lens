@@ -1,8 +1,8 @@
-# MoneyLens AI Insight Service
+# Monexa AI Insight Service
 
-An independent, Groq-powered AI insight layer for the [MoneyLens](../README.md) financial simulator. This service accepts structured output from the MoneyLens financial engine and returns human-readable observations, risks, insights, and actionable steps.
+An independent, Groq-powered AI insight layer for the [Monexa](../README.md) financial simulator. This service accepts structured output from the Monexa financial engine and returns human-readable observations, risks, insights, and actionable steps.
 
-> **This service does NOT perform financial calculations.** All numbers come from the MoneyLens financial engine. The AI layer only interprets and explains them.
+> **This service does NOT perform financial calculations.** All numbers come from the Monexa financial engine. The AI layer only interprets and explains them.
 
 ---
 

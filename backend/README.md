@@ -1,6 +1,6 @@
-# 🔭 MoneyLens — AI-Powered Financial Future Simulator Backend
+# 🔭 Monexa — AI-Powered Financial Future Simulator Backend
 
-> **MoneyLens** is a deterministic, AI-ready financial engine and simulation backend built with **Python**, **FastAPI**, and **Pydantic**.
+> **Monexa** is a deterministic, AI-ready financial engine and simulation backend built with **Python**, **FastAPI**, and **Pydantic**.
 > It simulates upfront purchases, loan/EMI financing, compounding future savings trajectories, financial goal feasibility, and rule-based risk/radar alerts.
 
 ---
@@ -28,7 +28,7 @@
 
 ## 🏗 Architecture & AI-Ready Pipeline
 
-MoneyLens is architected with a strict separation of concerns:
+Monexa is architected with a strict separation of concerns:
 
 ```
 ┌────────────────────────────────────────┐
