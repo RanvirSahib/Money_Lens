@@ -9,6 +9,7 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate, make_msgid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
@@ -41,6 +42,9 @@ class OtpService:
         msg["Subject"] = f"{otp_code} is your Monexa Verification Code"
         msg["From"] = f"Monexa Security <{from_email}>"
         msg["To"] = to_email
+        msg["Reply-To"] = from_email
+        msg["Date"] = formatdate(localtime=True)
+        msg["Message-ID"] = make_msgid(domain="gmail.com")
 
         text_content = f"Your Monexa verification code is: {otp_code}\n\nThis code expires in 10 minutes."
         html_content = f"""<!DOCTYPE html>
