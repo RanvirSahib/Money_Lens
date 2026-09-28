@@ -30,19 +30,18 @@ router = APIRouter(prefix="/auth", tags=["User Authentication & Security"])
 def send_otp_endpoint(payload: SendOtpRequest):
     """
     Generates a secure 6-digit OTP, stores it in PostgreSQL RDS with a 10-minute expiry,
-    and sends it via email (or logs it in development/sandbox mode).
+    and sends it via email.
     """
     code, delivered = otp_service.create_and_store_otp(payload.email, payload.purpose or "Registration")
-    msg = (
-        f"Verification code sent to {payload.email}."
-        if delivered
-        else f"Verification code generated for {payload.email}."
-    )
+    if not delivered:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification code to your email. Please verify your email address or try again."
+        )
     return OtpResponse(
         success=True,
         email=payload.email,
-        message=msg,
-        sandbox_otp=code
+        message=f"Verification code sent to {payload.email}."
     )
 
 

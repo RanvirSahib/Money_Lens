@@ -823,8 +823,8 @@ export async function registerUser(payload: RegisterPayload): Promise<AuthRespon
   });
 }
 
-export async function sendOtp(email: string, purpose: string = 'signup'): Promise<{ success: boolean; email: string; message: string; sandbox_otp?: string }> {
-  return apiFetch<{ success: boolean; email: string; message: string; sandbox_otp?: string }>('/auth/send-otp', {
+export async function sendOtp(email: string, purpose: string = 'signup'): Promise<{ success: boolean; email: string; message: string }> {
+  return apiFetch<{ success: boolean; email: string; message: string }>('/auth/send-otp', {
     method: 'POST',
     body: JSON.stringify({ email, purpose }),
   });

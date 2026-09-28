@@ -84,7 +84,6 @@ class OtpResponse(BaseModel):
     success: bool
     email: str
     message: str
-    sandbox_otp: Optional[str] = None  # Returned in dev/sandbox mode for testing ease
 
 
 class UserProfileUpdateRequest(BaseModel):

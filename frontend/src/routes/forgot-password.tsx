@@ -91,14 +91,10 @@ function ForgotPasswordPage() {
     try {
       const res = await sendOtp(email.trim().toLowerCase(), "reset");
       setStep("verify");
+      setOtpCode("");
       setCountdown(60);
       setCanResend(false);
-      if (res.sandbox_otp) {
-        setOtpCode(res.sandbox_otp);
-        setMessage(`A password reset code was sent to ${email}. (Sandbox OTP: ${res.sandbox_otp})`);
-      } else {
-        setMessage(res.message || `A password reset code was sent to ${email}.`);
-      }
+      setMessage(res.message || `A password reset code was sent to ${email}.`);
     } catch (err: any) {
       setError(err.message || "Failed to send reset code. Please try again.");
     } finally {
@@ -152,15 +148,11 @@ function ForgotPasswordPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await sendOtp(email.trim().toLowerCase(), "reset");
+      await sendOtp(email.trim().toLowerCase(), "reset");
+      setOtpCode("");
       setCountdown(60);
       setCanResend(false);
-      if (res.sandbox_otp) {
-        setOtpCode(res.sandbox_otp);
-        setMessage(`A fresh 6-digit reset code has been sent to ${email}. (Sandbox OTP: ${res.sandbox_otp})`);
-      } else {
-        setMessage(`A fresh 6-digit reset code has been sent to ${email}.`);
-      }
+      setMessage(`A fresh 6-digit reset code has been sent to ${email}.`);
     } catch (err: any) {
       setError(err.message || "Failed to resend code.");
     } finally {
