@@ -25,8 +25,11 @@ def prune_other_accounts() -> bool:
                 )
                 keep_user = cur.fetchone()
                 if not keep_user:
+                    cur.execute("SELECT id, email, username FROM users;")
+                    all_users = cur.fetchall()
                     logger.error(
                         f"Target account '{KEEP_EMAIL}' was NOT found in the database! "
+                        f"Existing accounts in DB: {[u['email'] for u in all_users]}. "
                         f"Aborting deletion to prevent accidental data loss."
                     )
                     return False
