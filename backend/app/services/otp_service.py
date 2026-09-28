@@ -29,24 +29,21 @@ class OtpService:
     @classmethod
     def send_email_otp(cls, to_email: str, otp_code: str, purpose: str = "Authentication") -> bool:
         """
-        Dispatches OTP email via standard SMTP if configured.
-        Falls back to logging for development/sandbox mode.
+        Dispatches OTP email via standard SMTP with dual-transport resilience:
+        Tries Port 465 (SMTPS / direct SSL) first, falling back to Port 587 (STARTTLS).
         """
         smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_user = os.getenv("SMTP_USERNAME")
-        smtp_pass = os.getenv("SMTP_PASSWORD")
+        smtp_user = os.getenv("SMTP_USERNAME") or "monexa.ai410@gmail.com"
+        smtp_pass = os.getenv("SMTP_PASSWORD") or "giafudkauoxboqdp"
         from_email = os.getenv("SMTP_FROM_EMAIL") or smtp_user or "monexa.ai410@gmail.com"
 
-        if smtp_server and smtp_user and smtp_pass:
-            try:
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = f"{otp_code} is your Monexa Verification Code"
-                msg["From"] = f"Monexa Security <{from_email}>"
-                msg["To"] = to_email
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"{otp_code} is your Monexa Verification Code"
+        msg["From"] = f"Monexa Security <{from_email}>"
+        msg["To"] = to_email
 
-                text_content = f"Your Monexa verification code is: {otp_code}\n\nThis code expires in 10 minutes."
-                html_content = f"""<!DOCTYPE html>
+        text_content = f"Your Monexa verification code is: {otp_code}\n\nThis code expires in 10 minutes."
+        html_content = f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -74,24 +71,36 @@ class OtpService:
     </div>
 </body>
 </html>"""
-                msg.attach(MIMEText(text_content, "plain"))
-                msg.attach(MIMEText(html_content, "html"))
+        msg.attach(MIMEText(text_content, "plain"))
+        msg.attach(MIMEText(html_content, "html"))
 
-                with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
-                    server.starttls()
-                    server.login(smtp_user, smtp_pass)
-                    server.send_message(msg)
-                logger.info(f"Successfully dispatched OTP email to {to_email} via SMTP ({smtp_server})")
-                return True
-            except Exception as e:
-                logger.error(f"Failed to send OTP via SMTP: {e}")
-                raise e
+        # 1. Primary: Try Port 465 (SMTPS direct SSL)
+        try:
+            with smtplib.SMTP_SSL(smtp_server, 465, timeout=12) as server:
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+            logger.info(f"Successfully dispatched OTP email to {to_email} via SMTP_SSL (port 465)")
+            return True
+        except Exception as e_ssl:
+            logger.warning(f"SMTP_SSL (port 465) failed: {e_ssl}. Attempting STARTTLS (port 587)...")
 
+        # 2. Secondary: Fallback to Port 587 (STARTTLS)
+        try:
+            with smtplib.SMTP(smtp_server, 587, timeout=12) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+            logger.info(f"Successfully dispatched OTP email to {to_email} via STARTTLS (port 587)")
+            return True
+        except Exception as e_tls:
+            logger.error(f"Failed to dispatch OTP email to {to_email} via both ports 465 & 587: {e_tls}")
+            return False
 
     @classmethod
-    def create_and_store_otp(cls, email: str, purpose: str = "auth") -> str:
+    def create_and_store_otp(cls, email: str, purpose: str = "auth") -> tuple[str, bool]:
         """
         Generates and stores 6-digit OTP in AWS RDS PostgreSQL with 10-minute expiry.
+        Dispatches verification email via SMTP and returns (otp_code, delivered).
         """
         email_clean = email.strip().lower()
         otp_code = cls.generate_otp()
@@ -128,8 +137,15 @@ class OtpService:
             }
 
         # Dispatch email
-        cls.send_email_otp(email_clean, otp_code, purpose)
-        return otp_code
+        delivered = False
+        try:
+            delivered = cls.send_email_otp(email_clean, otp_code, purpose)
+        except Exception as e:
+            logger.error(f"Unexpected error while dispatching OTP email: {e}")
+            delivered = False
+
+        logger.info(f"Generated OTP [{otp_code}] for {email_clean} (purpose: {purpose}, delivered={delivered})")
+        return otp_code, delivered
 
     @classmethod
     def verify_otp(cls, email: str, otp_code: str) -> bool:

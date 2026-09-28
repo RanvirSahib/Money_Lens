@@ -221,9 +221,16 @@ export function AuthFields({ mode }: { mode: Mode }) {
       setStep("otp");
       setCountdown(60);
       setCanResend(false);
-      setSuccessMessage(
-        otpRes.message || `A 6-digit verification code was sent to ${email}.`
-      );
+      if (otpRes.sandbox_otp) {
+        setOtpCode(otpRes.sandbox_otp);
+        setSuccessMessage(
+          `Verification code sent to ${email}. (Sandbox OTP: ${otpRes.sandbox_otp})`
+        );
+      } else {
+        setSuccessMessage(
+          otpRes.message || `A 6-digit verification code was sent to ${email}.`
+        );
+      }
     } catch (err: any) {
       setError(err.message || "Unable to send verification code. Please try again.");
     } finally {
@@ -287,10 +294,15 @@ export function AuthFields({ mode }: { mode: Mode }) {
     setError("");
 
     try {
-      await sendOtp(email.trim().toLowerCase(), "signup");
+      const res = await sendOtp(email.trim().toLowerCase(), "signup");
       setCountdown(60);
       setCanResend(false);
-      setSuccessMessage(`A new 6-digit code has been sent to ${email}.`);
+      if (res.sandbox_otp) {
+        setOtpCode(res.sandbox_otp);
+        setSuccessMessage(`A new 6-digit code has been sent to ${email}. (Sandbox OTP: ${res.sandbox_otp})`);
+      } else {
+        setSuccessMessage(`A new 6-digit code has been sent to ${email}.`);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to resend verification code.");
     } finally {
